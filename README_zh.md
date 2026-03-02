@@ -47,8 +47,7 @@ const registry = createProviderRegistry({
 })
 
 // 使用 preset，只需設定 API_KEY
-// OPENAI_PRESET=openai
-// OPENAI_API_KEY=sk-xxx
+// OPENAI_API_KEY=sk-xxx（OPENAI_PRESET=openai 可省略——自動偵測）
 const model = registry.languageModel('env:openai/gpt-4o')
 
 const { text } = await generateText({ model, prompt: 'Hello!' })
@@ -86,7 +85,7 @@ const review = await generateText({
 | 環境變數 | 必填 | 說明 |
 |---|---|---|
 | `[MYAI]_API_KEY` | 是 | API 金鑰 |
-| `[MYAI]_BASE_URL` | 無 preset 時必填 | API base URL |
+| `[MYAI]_BASE_URL` | 無 preset 且未自動偵測時必填 | API base URL |
 | `[MYAI]_PRESET` | 否 | 內建 preset 名稱（如 `openai`） |
 | `[MYAI]_COMPATIBLE` | 否 | 相容模式（預設 `openai-compatible`） |
 | `[MYAI]_HEADERS` | 否 | 自訂 HTTP headers（JSON 格式） |
@@ -118,6 +117,26 @@ const review = await generateText({
 | `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
 | `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
 
+## Preset 自動偵測
+
+`presetAutoDetect` 預設啟用。當設定集名稱與內建 preset 名稱完全一致時，會自動套用對應 preset——無需設定 `_PRESET` 環境變數，只需提供 API 金鑰：
+
+```bash
+# 只需設定 OPENROUTER_API_KEY
+OPENROUTER_API_KEY=sk-or-xxx
+```
+
+```ts
+// 自動偵測 openrouter preset
+const model = provider.languageModel('openrouter/some-model')
+```
+
+明確設定的 `_PRESET` 和 `_BASE_URL` 環境變數優先於自動偵測。若要停用此行為：
+
+```ts
+envProvider({ presetAutoDetect: false })
+```
+
 ## API 參考
 
 ### `envProvider(options?)`
@@ -137,6 +156,7 @@ const provider = envProvider(options)
 | `separator` | `string` | `'_'` | 環境變數前綴與變數名稱之間的分隔符號 |
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | 在程式碼中明確指定設定集配置，優先於環境變數 |
 | `defaults` | `EnvProviderDefaults` | `undefined` | 全域預設值，套用到所有 provider（可被個別設定集覆蓋） |
+| `presetAutoDetect` | `boolean` | `true` | 設定集名稱與內建 preset 相符時自動套用。設為 `false` 則需明確設定 `_PRESET` 環境變數。 |
 
 **`EnvProviderDefaults`：**
 

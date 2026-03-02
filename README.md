@@ -47,8 +47,7 @@ const registry = createProviderRegistry({
 })
 
 // Use a preset: only API_KEY is required
-// OPENAI_PRESET=openai
-// OPENAI_API_KEY=sk-xxx
+// OPENAI_API_KEY=sk-xxx  (OPENAI_PRESET=openai is optional — auto-detected)
 const model = registry.languageModel('env:openai/gpt-4o')
 
 const { text } = await generateText({ model, prompt: 'Hello!' })
@@ -86,7 +85,7 @@ With the default separator `_`, a config set reads these variables (`[MYAI]` = y
 | Variable | Required | Description |
 |---|---|---|
 | `[MYAI]_API_KEY` | Yes | API key |
-| `[MYAI]_BASE_URL` | Yes (unless preset is set) | API base URL |
+| `[MYAI]_BASE_URL` | Yes (unless preset is set or auto-detected) | API base URL |
 | `[MYAI]_PRESET` | No | Built-in preset name (e.g. `openai`) |
 | `[MYAI]_COMPATIBLE` | No | Compatibility mode (default: `openai-compatible`) |
 | `[MYAI]_HEADERS` | No | Custom HTTP headers (JSON format) |
@@ -118,6 +117,26 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 | `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
 | `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
 
+## Preset Auto-Detect
+
+`presetAutoDetect` is enabled by default. When the config set name exactly matches a built-in preset name, the preset is applied automatically — no `_PRESET` env var needed. Only an API key is required:
+
+```bash
+# OPENROUTER_API_KEY is all you need
+OPENROUTER_API_KEY=sk-or-xxx
+```
+
+```ts
+// Works — openrouter preset auto-detected from config set name
+const model = provider.languageModel('openrouter/some-model')
+```
+
+Explicit `_PRESET` and `_BASE_URL` env vars always take precedence over auto-detect. To disable this behavior:
+
+```ts
+envProvider({ presetAutoDetect: false })
+```
+
 ## API Reference
 
 ### `envProvider(options?)`
@@ -137,6 +156,7 @@ const provider = envProvider(options)
 | `separator` | `string` | `'_'` | Separator between the prefix and the variable name |
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | Explicit config sets (takes precedence over env vars) |
 | `defaults` | `EnvProviderDefaults` | `undefined` | Global defaults applied to all providers (can be overridden per config set) |
+| `presetAutoDetect` | `boolean` | `true` | Auto-apply a built-in preset when the config set name matches. Set to `false` to require explicit `_PRESET` configuration. |
 
 **`EnvProviderDefaults`:**
 
