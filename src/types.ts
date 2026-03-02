@@ -136,4 +136,24 @@ export interface EnvProviderOptions {
    * })
    */
   defaults?: EnvProviderDefaults
+
+  /**
+   * Automatically use a built-in preset when the config set name matches a preset name.
+   *
+   * When enabled (default), if a config set name matches a built-in preset name (e.g., `openai`, `anthropic`, `deepseek`),
+   * that preset is automatically applied without requiring the `{PREFIX}_PRESET` environment variable.
+   * Set to `false` to disable this behavior and require explicit preset configuration.
+   *
+   * @example
+   * // With presetAutoDetect enabled (default):
+   * // OPENAI_API_KEY=sk-xxx
+   * // → automatically uses the 'openai' preset
+   *
+   * @example
+   * // With presetAutoDetect disabled:
+   * // OPENAI_API_KEY=sk-xxx
+   * // OPENAI_PRESET=openai  (required)
+   * envProvider({ presetAutoDetect: false })
+   */
+  presetAutoDetect?: boolean
 }

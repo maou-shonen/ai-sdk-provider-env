@@ -633,6 +633,233 @@ describe('envProvider', () => {
     })
   })
 
+  describe('preset auto-detect', () => {
+    // Core Functionality
+
+    it('should auto-detect deepseek preset when only DEEPSEEK_API_KEY is set', () => {
+      setEnv('DEEPSEEK_API_KEY', 'ds-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('deepseek/deepseek-chat')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'deepseek',
+        baseURL: 'https://api.deepseek.com',
+        apiKey: 'ds-key',
+      })
+    })
+
+    it('should auto-detect openai preset when only OPENAI_API_KEY is set', () => {
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('openai/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'sk-key',
+      })
+    })
+
+    it('should auto-detect anthropic preset when only ANTHROPIC_API_KEY is set', () => {
+      setEnv('ANTHROPIC_API_KEY', 'ant-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('anthropic/claude-sonnet-4-20250514')
+
+      expect(mockCreateAnthropic).toHaveBeenCalledWith({
+        baseURL: 'https://api.anthropic.com',
+        apiKey: 'ant-key',
+      })
+    })
+
+    it('should auto-detect openrouter preset with mixed-case configSet', () => {
+      setEnv('OPENROUTER_API_KEY', 'or-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('OpenRouter/some-model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'OpenRouter',
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: 'or-key',
+      })
+    })
+
+    it('should throw mentioning BASE_URL when configSet has no preset match', () => {
+      setEnv('MYAPI_API_KEY', 'my-key')
+
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('myapi/model'))
+        .toThrow('MYAPI_BASE_URL')
+    })
+
+    // Option Behavior
+
+    it('should throw when presetAutoDetect is false even if configSet matches a preset', () => {
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories, { presetAutoDetect: false })
+      expect(() => provider.languageModel('openai/gpt-4o'))
+        .toThrow('OPENAI_BASE_URL')
+    })
+
+    it('should auto-detect when presetAutoDetect is explicitly true', () => {
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories, { presetAutoDetect: true })
+      provider.languageModel('openai/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'sk-key',
+      })
+    })
+
+    it('should auto-detect by default when no options are passed', () => {
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('openai/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'sk-key',
+      })
+    })
+
+    // Precedence
+
+    it('should use PRESET env var over auto-detect when OPENAI_PRESET=deepseek', () => {
+      setEnv('OPENAI_PRESET', 'deepseek')
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('openai/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'openai',
+        baseURL: 'https://api.deepseek.com',
+        apiKey: 'sk-key',
+      })
+      expect(mockCreateOpenAI).not.toHaveBeenCalled()
+    })
+
+    it('should use BASE_URL env var over auto-detect when OPENAI_BASE_URL is set', () => {
+      setEnv('OPENAI_BASE_URL', 'https://proxy.com')
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('openai/model')
+
+      // BASE_URL path uses openai-compatible by default (no COMPATIBLE set)
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'openai',
+        baseURL: 'https://proxy.com',
+        apiKey: 'sk-key',
+      })
+      expect(mockCreateOpenAI).not.toHaveBeenCalled()
+    })
+
+    it('should use code configs over auto-detect', () => {
+      const provider = createEnvProvider(factories, {
+        configs: {
+          openai: {
+            baseURL: 'https://explicit.com',
+            apiKey: 'explicit-key',
+            compatible: 'openai-compatible',
+          },
+        },
+      })
+      provider.languageModel('openai/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'openai',
+        baseURL: 'https://explicit.com',
+        apiKey: 'explicit-key',
+      })
+      expect(mockCreateOpenAI).not.toHaveBeenCalled()
+    })
+
+    // Env Var Overrides with Auto-Detect
+
+    it('should allow COMPATIBLE env var to override auto-detected preset compatible', () => {
+      setEnv('DEEPSEEK_API_KEY', 'ds-key')
+      setEnv('DEEPSEEK_COMPATIBLE', 'anthropic')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('deepseek/model')
+
+      expect(mockCreateAnthropic).toHaveBeenCalled()
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('should pass HEADERS env var when auto-detecting deepseek preset', () => {
+      setEnv('DEEPSEEK_API_KEY', 'ds-key')
+      setEnv('DEEPSEEK_HEADERS', '{"X-Custom":"value"}')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('deepseek/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'deepseek',
+        baseURL: 'https://api.deepseek.com',
+        apiKey: 'ds-key',
+        headers: { 'X-Custom': 'value' },
+      })
+    })
+
+    // Error Messages
+
+    it('should mention MYAPI_BASE_URL and MYAPI_PRESET in error when no preset match and auto-detect on', () => {
+      setEnv('MYAPI_API_KEY', 'my-key')
+
+      const provider = createEnvProvider(factories)
+      const err = (() => {
+        try {
+          provider.languageModel('myapi/model')
+        }
+        catch (e) {
+          return e as Error
+        }
+      })()
+
+      expect(err?.message).toContain('MYAPI_BASE_URL')
+      expect(err?.message).toContain('MYAPI_PRESET')
+    })
+
+    it('should mention presetAutoDetect in error when auto-detect is disabled and configSet matches a preset', () => {
+      setEnv('OPENAI_API_KEY', 'sk-key')
+
+      const provider = createEnvProvider(factories, { presetAutoDetect: false })
+      const err = (() => {
+        try {
+          provider.languageModel('openai/model')
+        }
+        catch (e) {
+          return e as Error
+        }
+      })()
+
+      expect(err?.message).toContain('presetAutoDetect')
+    })
+
+    // Custom Separator
+
+    it('should auto-detect deepseek preset with custom separator __', () => {
+      setEnv('DEEPSEEK__API_KEY', 'ds-key')
+
+      const provider = createEnvProvider(factories, { separator: '__' })
+      provider.languageModel('deepseek/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'deepseek',
+        baseURL: 'https://api.deepseek.com',
+        apiKey: 'ds-key',
+      })
+    })
+  })
+
   describe('caching', () => {
     it('should only create one provider per config set', () => {
       setEnv('CACHED_BASE_URL', 'https://api.example.com/v1')
