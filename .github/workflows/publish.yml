@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Do not set registry-url, it interferes with the OIDC flow
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
