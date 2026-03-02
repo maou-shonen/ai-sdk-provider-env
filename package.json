@@ -1,0 +1,79 @@
+{
+  "name": "ai-sdk-provider-env",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "A dynamic, environment-variable-driven provider for Vercel AI SDK — resolves provider configurations from env var conventions at runtime",
+  "author": "maou-shonen",
+  "license": "MIT",
+  "homepage": "https://github.com/maou-shonen/ai-sdk-provider-env#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maou-shonen/ai-sdk-provider-env.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maou-shonen/ai-sdk-provider-env/issues"
+  },
+  "keywords": [
+    "ai",
+    "ai-sdk",
+    "ai-sdk-provider"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "peerDependencies": {
+    "@ai-sdk/anthropic": ">=3.0.0",
+    "@ai-sdk/openai": ">=3.0.0",
+    "@ai-sdk/openai-compatible": ">=2.0.0",
+    "@ai-sdk/provider": ">=3.0.0",
+    "ai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/openai-compatible": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
+    "@ai-sdk/openai-compatible": "^2.0.0",
+    "@ai-sdk/provider": "^3.0.0",
+    "@antfu/eslint-config": "^7.6.1",
+    "@types/bun": "latest",
+    "ai": "^6.0.0",
+    "eslint": "^10.0.0",
+    "tsdown": "^0.21.0-beta.2",
+    "typescript": "^5.7.0"
+  }
+}
