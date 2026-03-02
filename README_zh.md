@@ -31,7 +31,7 @@ pnpm add ai-sdk-provider-env
 按需安裝 provider SDK：
 
 ```bash
-pnpm add @ai-sdk/openai            # OpenAI 及 OpenAI Compatible
+pnpm add @ai-sdk/openai            # OpenAI
 pnpm add @ai-sdk/anthropic         # Anthropic
 pnpm add @ai-sdk/openai-compatible # 其他 OpenAI Compatible 提供商
 ```
