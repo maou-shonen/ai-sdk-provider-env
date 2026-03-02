@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # OIDC Trusted Publishing 必需
+  id-token: write # Required for OIDC Trusted Publishing
 
 jobs:
   publish:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 不要設定 registry-url，會干擾 OIDC 流程
+      # Do not set registry-url, it interferes with the OIDC flow
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -27,7 +27,7 @@ jobs:
       - run: bun run build
       - run: bun test
 
-      # 從 Release tag 同步版本號（v0.2.0 → 0.2.0）
+      # Sync version from release tag (v0.2.0 → 0.2.0)
       - run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
 
       - run: npm publish --access public --no-git-checks
