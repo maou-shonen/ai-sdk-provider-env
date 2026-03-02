@@ -17,7 +17,7 @@ jobs:
       # Do not set registry-url, it interferes with the OIDC flow
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: '22'
 
       - uses: oven-sh/setup-bun@v2
 

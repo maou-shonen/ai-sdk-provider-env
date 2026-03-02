@@ -8,13 +8,13 @@ updates:
     groups:
       ai-sdk:
         patterns:
-          - "ai"
-          - "@ai-sdk/*"
+          - ai
+          - '@ai-sdk/*'
       dev-dependencies:
         dependency-type: development
         exclude-patterns:
-          - "ai"
-          - "@ai-sdk/*"
+          - ai
+          - '@ai-sdk/*'
 
   - package-ecosystem: github-actions
     directory: /
