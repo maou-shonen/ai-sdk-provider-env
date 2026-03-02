@@ -141,21 +141,39 @@ export function createEnvProvider(
       }
     }
 
-    // Without a preset, BASE_URL is required
+    // Without a preset, try BASE_URL first
     const baseURL = env('BASE_URL')
-    if (!baseURL) {
-      throw new Error(
-        `[ai-sdk-provider-env] Missing env var ${prefix}${separator}BASE_URL`
-        + ` (or set ${prefix}${separator}PRESET to use a preset)`,
-      )
+    if (baseURL) {
+      return {
+        baseURL,
+        apiKey,
+        compatible: env('COMPATIBLE') ?? 'openai-compatible',
+        ...(headers && { headers }),
+      }
     }
 
-    return {
-      baseURL,
-      apiKey,
-      compatible: env('COMPATIBLE') ?? 'openai-compatible',
-      ...(headers && { headers }),
+    // Auto-detect: if configSet name matches a built-in preset, use it automatically
+    if (options.presetAutoDetect !== false) {
+      const autoPreset = builtinPresets[configSet.toLowerCase()]
+      if (autoPreset) {
+        return {
+          baseURL: autoPreset.baseURL,
+          apiKey,
+          compatible: env('COMPATIBLE') ?? autoPreset.compatible ?? 'openai-compatible',
+          ...(headers && { headers }),
+        }
+      }
     }
+
+    // Error: neither BASE_URL nor a matching preset found
+    const presetHint = builtinPresets[configSet.toLowerCase()]
+      ? ` (Note: "${configSet}" matches a built-in preset, but presetAutoDetect is disabled.)`
+      : ''
+    throw new Error(
+      `[ai-sdk-provider-env] Missing env var ${prefix}${separator}BASE_URL`
+      + ` (or set ${prefix}${separator}PRESET to use a preset)${
+        presetHint}`,
+    )
   }
 
   /**
