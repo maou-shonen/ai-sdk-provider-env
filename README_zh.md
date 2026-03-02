@@ -152,7 +152,7 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: string // 'openai' | 'anthropic' | 'openai-compatible'（預設 'openai-compatible'）
+  compatible?: 'openai' | 'anthropic' | 'openai-compatible' // 預設 'openai-compatible'
   headers?: Record<string, string>
 }
 ```
