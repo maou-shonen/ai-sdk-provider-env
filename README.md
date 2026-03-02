@@ -88,7 +88,7 @@ With the default separator `_`, a config set reads these variables (`[MYAI]` = y
 | `[MYAI]_API_KEY` | Yes | API key |
 | `[MYAI]_BASE_URL` | Yes (unless preset is set) | API base URL |
 | `[MYAI]_PRESET` | No | Built-in preset name (e.g. `openai`) |
-| `[MYAI]_COMPATIBLE` | No | Compatibility mode (default: `openai`) |
+| `[MYAI]_COMPATIBLE` | No | Compatibility mode (default: `openai-compatible`) |
 | `[MYAI]_HEADERS` | No | Custom HTTP headers (JSON format) |
 
 When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back to the preset's values.
@@ -97,9 +97,9 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 
 | Value | Behavior |
 |---|---|
-| `openai` | Uses `@ai-sdk/openai` (default) |
+| `openai` | Uses `@ai-sdk/openai` |
 | `anthropic` | Uses `@ai-sdk/anthropic` |
-| any other string | Uses `@ai-sdk/openai-compatible` with that string as the provider name |
+| `openai-compatible` | Uses `@ai-sdk/openai-compatible` with the config set name as the provider name (default) |
 
 ## Built-in Presets
 
@@ -107,16 +107,16 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 |---|---|---|
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
-| `deepseek` | `https://api.deepseek.com` | `openai` |
-| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai` |
-| `groq` | `https://api.groq.com/openai/v1` | `openai` |
-| `together` | `https://api.together.xyz/v1` | `openai` |
-| `fireworks` | `https://api.fireworks.ai/inference/v1` | `openai` |
-| `mistral` | `https://api.mistral.ai/v1` | `openai` |
-| `moonshot` | `https://api.moonshot.cn/v1` | `openai` |
-| `perplexity` | `https://api.perplexity.ai` | `openai` |
-| `openrouter` | `https://openrouter.ai/api/v1` | `openai` |
-| `siliconflow` | `https://api.siliconflow.cn/v1` | `openai` |
+| `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
+| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
+| `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
+| `together` | `https://api.together.xyz/v1` | `openai-compatible` |
+| `fireworks` | `https://api.fireworks.ai/inference/v1` | `openai-compatible` |
+| `mistral` | `https://api.mistral.ai/v1` | `openai-compatible` |
+| `moonshot` | `https://api.moonshot.cn/v1` | `openai-compatible` |
+| `perplexity` | `https://api.perplexity.ai` | `openai-compatible` |
+| `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
+| `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
 
 ## API Reference
 
@@ -152,7 +152,7 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: string // 'openai' | 'anthropic' | any string (default: 'openai')
+  compatible?: string // 'openai' | 'anthropic' | 'openai-compatible' (default: 'openai-compatible')
   headers?: Record<string, string>
 }
 ```

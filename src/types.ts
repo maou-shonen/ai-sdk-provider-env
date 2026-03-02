@@ -18,11 +18,11 @@ export interface ConfigSetEntry {
   /**
    * Compatibility mode
    *
-   * - `'openai'` — uses `createOpenAI` (default)
+   * - `'openai'` — uses `createOpenAI`
    * - `'anthropic'` — uses `createAnthropic`
-   * - any other string — uses `createOpenAICompatible` with that string as the provider name
+   * - `'openai-compatible'` — uses `createOpenAICompatible` with the config set name as the provider name (default)
    */
-  compatible?: string
+  compatible?: 'openai' | 'anthropic' | 'openai-compatible'
   /**
    * Custom HTTP headers appended to API requests.
    *
@@ -41,9 +41,13 @@ export interface PresetConfig {
   /** API base URL */
   baseURL: string
   /**
-   * Compatibility mode (defaults to `'openai'`)
+   * Compatibility mode
+   *
+   * - `'openai'` — uses `createOpenAI`
+   * - `'anthropic'` — uses `createAnthropic`
+   * - `'openai-compatible'` — uses `createOpenAICompatible` with the config set name as the provider name (default)
    */
-  compatible?: string
+  compatible?: 'openai' | 'anthropic' | 'openai-compatible'
 }
 
 /**

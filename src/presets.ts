@@ -22,60 +22,60 @@ export const builtinPresets: Record<string, PresetConfig> = {
   // DeepSeek
   deepseek: {
     baseURL: 'https://api.deepseek.com',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Zhipu AI (GLM series)
   zhipu: {
     baseURL: 'https://open.bigmodel.cn/api/paas/v4',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Groq
   groq: {
     baseURL: 'https://api.groq.com/openai/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Together AI
   together: {
     baseURL: 'https://api.together.xyz/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Fireworks AI
   fireworks: {
     baseURL: 'https://api.fireworks.ai/inference/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Mistral AI
   mistral: {
     baseURL: 'https://api.mistral.ai/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Moonshot AI
   moonshot: {
     baseURL: 'https://api.moonshot.cn/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // Perplexity
   perplexity: {
     baseURL: 'https://api.perplexity.ai',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // OpenRouter
   openrouter: {
     baseURL: 'https://openrouter.ai/api/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 
   // SiliconFlow
   siliconflow: {
     baseURL: 'https://api.siliconflow.cn/v1',
-    compatible: 'openai',
+    compatible: 'openai-compatible',
   },
 }

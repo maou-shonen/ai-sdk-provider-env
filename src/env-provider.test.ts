@@ -111,15 +111,30 @@ describe('envProvider', () => {
   })
 
   describe('env var resolution', () => {
-    it('should create openai provider by default', () => {
+    it('should create openai-compatible provider by default', () => {
       setEnv('MYAPI_BASE_URL', 'https://api.example.com/v1')
       setEnv('MYAPI_API_KEY', 'test-key')
 
       const provider = createEnvProvider(factories)
       provider.languageModel('myapi/some-model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myapi',
         baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should create openai provider when COMPATIBLE=openai', () => {
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
         apiKey: 'test-key',
       })
     })
@@ -139,19 +154,15 @@ describe('envProvider', () => {
       expect(mockCreateOpenAI).not.toHaveBeenCalled()
     })
 
-    it('should create openai-compatible provider for custom COMPATIBLE values', () => {
+    it('should throw on unknown compatible values', () => {
       setEnv('CUSTOM_BASE_URL', 'https://api.custom.com/v1')
       setEnv('CUSTOM_API_KEY', 'test-key')
       setEnv('CUSTOM_COMPATIBLE', 'my-custom-provider')
 
       const provider = createEnvProvider(factories)
-      provider.languageModel('custom/my-model')
 
-      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
-        name: 'my-custom-provider',
-        baseURL: 'https://api.custom.com/v1',
-        apiKey: 'test-key',
-      })
+      expect(() => provider.languageModel('custom/my-model'))
+        .toThrow('Unknown compatible mode')
     })
 
     it('should pass modelId correctly to the underlying provider', () => {
@@ -161,7 +172,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('test/gpt-4o')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.languageModel).toHaveBeenCalledWith('gpt-4o')
     })
 
@@ -172,7 +183,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('test/org/model-name')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.languageModel).toHaveBeenCalledWith('org/model-name')
     })
 
@@ -183,7 +194,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('myApi/some-model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myApi',
         baseURL: 'https://api.example.com/v1',
         apiKey: 'key',
       })
@@ -287,7 +299,8 @@ describe('envProvider', () => {
       })
       provider.languageModel('test/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'test',
         baseURL: 'https://api.test.com',
         apiKey: 'key',
         headers: { 'X-Custom': 'value' },
@@ -317,7 +330,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('ds/deepseek-chat')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'ds',
           baseURL: 'https://api.deepseek.com',
           apiKey: 'ds-key',
         })
@@ -335,7 +349,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('ds/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'ds',
           baseURL: 'https://my-proxy.com/deepseek',
           apiKey: 'ds-key',
         })
@@ -354,7 +369,7 @@ describe('envProvider', () => {
         provider.languageModel('ds/model')
 
         expect(mockCreateAnthropic).toHaveBeenCalled()
-        expect(mockCreateOpenAI).not.toHaveBeenCalled()
+        expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
       })
 
       it('should pass headers with preset in configs', () => {
@@ -369,7 +384,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('ds/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'ds',
           baseURL: 'https://api.deepseek.com',
           apiKey: 'ds-key',
           headers: { 'X-Custom': 'value' },
@@ -400,7 +416,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories, { separator: '__' })
       provider.languageModel('myapi/some-model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myapi',
         baseURL: 'https://api.example.com/v1',
         apiKey: 'test-key',
       })
@@ -413,7 +430,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories, { separator: '__' })
       provider.languageModel('ds/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'ds',
         baseURL: 'https://api.deepseek.com',
         apiKey: 'key',
       })
@@ -422,7 +440,7 @@ describe('envProvider', () => {
 
   describe('defaults option', () => {
     describe('defaults.fetch', () => {
-      it('should pass custom fetch to openai provider', () => {
+      it('should pass custom fetch to openai-compatible provider', () => {
         setEnv('TEST_BASE_URL', 'https://api.example.com/v1')
         setEnv('TEST_API_KEY', 'key')
 
@@ -430,7 +448,8 @@ describe('envProvider', () => {
         const provider = createEnvProvider(factories, { defaults: { fetch: customFetch } })
         provider.languageModel('test/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'test',
           baseURL: 'https://api.example.com/v1',
           apiKey: 'key',
           fetch: customFetch,
@@ -453,17 +472,17 @@ describe('envProvider', () => {
         })
       })
 
-      it('should pass custom fetch to openai-compatible provider', () => {
+      it('should pass custom fetch to explicit openai-compatible provider', () => {
         setEnv('TEST_BASE_URL', 'https://api.custom.com/v1')
         setEnv('TEST_API_KEY', 'key')
-        setEnv('TEST_COMPATIBLE', 'my-provider')
+        setEnv('TEST_COMPATIBLE', 'openai-compatible')
 
         const customFetch = mock() as unknown as typeof globalThis.fetch
         const provider = createEnvProvider(factories, { defaults: { fetch: customFetch } })
         provider.languageModel('test/model')
 
         expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
-          name: 'my-provider',
+          name: 'test',
           baseURL: 'https://api.custom.com/v1',
           apiKey: 'key',
           fetch: customFetch,
@@ -481,7 +500,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('test/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'test',
           baseURL: 'https://api.example.com/v1',
           apiKey: 'key',
           headers: { 'X-App': 'my-app' },
@@ -498,7 +518,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('test/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'test',
           baseURL: 'https://api.example.com/v1',
           apiKey: 'key',
           headers: { 'X-App': 'override', 'X-Default': 'kept', 'X-Extra': 'extra' },
@@ -518,7 +539,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('test/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'test',
           baseURL: 'https://api.test.com',
           apiKey: 'key',
           headers: { 'X-App': 'override', 'X-Default': 'kept' },
@@ -538,7 +560,8 @@ describe('envProvider', () => {
         })
         provider.languageModel('test/model')
 
-        expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'test',
           baseURL: 'https://api.example.com/v1',
           apiKey: 'key',
           headers: { 'X-App': 'my-app' },
@@ -557,7 +580,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('test/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'test',
         baseURL: 'https://api.example.com/v1',
         apiKey: 'key',
         headers: { 'X-Custom': 'value', 'X-Other': 'bar' },
@@ -582,7 +606,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('ds/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'ds',
         baseURL: 'https://api.deepseek.com',
         apiKey: 'key',
         headers: { 'X-Custom': 'value' },
@@ -598,7 +623,8 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories, { defaults: { fetch: customFetch } })
       provider.languageModel('test/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'test',
         baseURL: 'https://api.example.com/v1',
         apiKey: 'key',
         headers: { 'X-Custom': 'value' },
@@ -616,7 +642,7 @@ describe('envProvider', () => {
       provider.languageModel('cached/model-a')
       provider.languageModel('cached/model-b')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledTimes(1)
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(1)
     })
 
     it('should create separate providers for different config sets', () => {
@@ -629,7 +655,7 @@ describe('envProvider', () => {
       provider.languageModel('a/model')
       provider.languageModel('b/model')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledTimes(2)
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -643,7 +669,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.embeddingModel('test/text-embedding-3-small')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.embeddingModel).toHaveBeenCalledWith('text-embedding-3-small')
     })
 
@@ -651,7 +677,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.imageModel('test/dall-e-3')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.imageModel).toHaveBeenCalledWith('dall-e-3')
     })
 
@@ -659,7 +685,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.textEmbeddingModel!('test/text-embedding-3-small')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.textEmbeddingModel).toHaveBeenCalledWith('text-embedding-3-small')
     })
 
@@ -667,7 +693,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.transcriptionModel!('test/whisper-1')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.transcriptionModel).toHaveBeenCalledWith('whisper-1')
     })
 
@@ -675,7 +701,7 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.speechModel!('test/tts-1')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.speechModel).toHaveBeenCalledWith('tts-1')
     })
 
@@ -683,14 +709,14 @@ describe('envProvider', () => {
       const provider = createEnvProvider(factories)
       provider.rerankingModel!('test/rerank-1')
 
-      const mockProvider = mockCreateOpenAI.mock.results[0].value as ProviderV3
+      const mockProvider = mockCreateOpenAICompatible.mock.results[0].value as ProviderV3
       expect(mockProvider.rerankingModel).toHaveBeenCalledWith('rerank-1')
     })
 
     describe('unsupported model types', () => {
       it('should throw NoSuchModelError when provider does not support textEmbeddingModel', () => {
         // Override to return a minimal provider with only languageModel
-        mockCreateOpenAI.mockReturnValue({
+        mockCreateOpenAICompatible.mockReturnValue({
           specificationVersion: 'v3' as const,
           languageModel: mock(),
         } as unknown as ProviderV3)
@@ -701,7 +727,7 @@ describe('envProvider', () => {
       })
 
       it('should throw NoSuchModelError when provider does not support transcriptionModel', () => {
-        mockCreateOpenAI.mockReturnValue({
+        mockCreateOpenAICompatible.mockReturnValue({
           specificationVersion: 'v3' as const,
           languageModel: mock(),
         } as unknown as ProviderV3)
@@ -712,7 +738,7 @@ describe('envProvider', () => {
       })
 
       it('should throw NoSuchModelError when provider does not support speechModel', () => {
-        mockCreateOpenAI.mockReturnValue({
+        mockCreateOpenAICompatible.mockReturnValue({
           specificationVersion: 'v3' as const,
           languageModel: mock(),
         } as unknown as ProviderV3)
@@ -723,7 +749,7 @@ describe('envProvider', () => {
       })
 
       it('should throw NoSuchModelError when provider does not support rerankingModel', () => {
-        mockCreateOpenAI.mockReturnValue({
+        mockCreateOpenAICompatible.mockReturnValue({
           specificationVersion: 'v3' as const,
           languageModel: mock(),
         } as unknown as ProviderV3)

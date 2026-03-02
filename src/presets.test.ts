@@ -36,7 +36,7 @@ function createMockFactories() {
     createOpenAICompatible: mockCreateOpenAICompatible,
   }
 
-  return { factories, mockCreateOpenAI, mockCreateAnthropic }
+  return { factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible }
 }
 
 // --- Env var helpers ---
@@ -64,10 +64,11 @@ function clearTestEnv() {
 describe('presets', () => {
   let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
   let mockCreateAnthropic: ReturnType<typeof createMockFactories>['mockCreateAnthropic']
+  let mockCreateOpenAICompatible: ReturnType<typeof createMockFactories>['mockCreateOpenAICompatible']
   let factories: ProviderFactories
 
   beforeEach(() => {
-    ({ factories, mockCreateOpenAI, mockCreateAnthropic } = createMockFactories())
+    ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible } = createMockFactories())
   })
 
   afterEach(() => {
@@ -82,7 +83,8 @@ describe('presets', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('ds/deepseek-chat')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'ds',
         baseURL: 'https://api.deepseek.com',
         apiKey: 'deepseek-key',
       })
@@ -96,7 +98,8 @@ describe('presets', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('ds/deepseek-chat')
 
-      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'ds',
         baseURL: 'https://my-proxy.com/deepseek',
         apiKey: 'deepseek-key',
       })
@@ -110,7 +113,7 @@ describe('presets', () => {
       const provider = createEnvProvider(factories)
       provider.languageModel('ds/deepseek-chat')
 
-      // deepseek preset defaults to openai, but overridden to anthropic
+      // deepseek preset defaults to openai-compatible, but overridden to anthropic
       expect(mockCreateAnthropic).toHaveBeenCalled()
       expect(mockCreateOpenAI).not.toHaveBeenCalled()
     })
