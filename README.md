@@ -127,6 +127,8 @@ OPENROUTER_API_KEY=sk-or-xxx
 ```
 
 ```ts
+const provider = envProvider()
+
 // Works — openrouter preset auto-detected from config set name
 const model = provider.languageModel('openrouter/some-model')
 ```

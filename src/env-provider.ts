@@ -166,13 +166,14 @@ export function createEnvProvider(
     }
 
     // Error: neither BASE_URL nor a matching preset found
+    const available = Object.keys(builtinPresets).join(', ')
     const presetHint = builtinPresets[configSet.toLowerCase()]
       ? ` (Note: "${configSet}" matches a built-in preset, but presetAutoDetect is disabled.)`
       : ''
     throw new Error(
       `[ai-sdk-provider-env] Missing env var ${prefix}${separator}BASE_URL`
-      + ` (or set ${prefix}${separator}PRESET to use a preset)${
-        presetHint}`,
+      + ` (or set ${prefix}${separator}PRESET to use a preset.`
+      + ` Available presets: ${available})${presetHint}`,
     )
   }
 

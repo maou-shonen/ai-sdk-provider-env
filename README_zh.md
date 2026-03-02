@@ -127,6 +127,8 @@ OPENROUTER_API_KEY=sk-or-xxx
 ```
 
 ```ts
+const provider = envProvider()
+
 // 自動偵測 openrouter preset
 const model = provider.languageModel('openrouter/some-model')
 ```
