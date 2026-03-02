@@ -67,7 +67,7 @@ export function createEnvProvider(
     }
     return {
       baseURL: preset.baseURL,
-      compatible: preset.compatible ?? 'openai',
+      compatible: preset.compatible ?? 'openai-compatible',
     }
   }
 
@@ -100,7 +100,7 @@ export function createEnvProvider(
       return {
         baseURL: config.baseURL,
         apiKey: config.apiKey,
-        compatible: config.compatible ?? 'openai',
+        compatible: config.compatible ?? 'openai-compatible',
         ...(config.headers && { headers: config.headers }),
       }
     }
@@ -153,7 +153,7 @@ export function createEnvProvider(
     return {
       baseURL,
       apiKey,
-      compatible: env('COMPATIBLE') ?? 'openai',
+      compatible: env('COMPATIBLE') ?? 'openai-compatible',
       ...(headers && { headers }),
     }
   }
@@ -161,7 +161,7 @@ export function createEnvProvider(
   /**
    * Create the underlying provider based on the compatibility mode.
    */
-  function createUnderlying(config: ResolvedConfig): ProviderV3 {
+  function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3 {
     const { baseURL, apiKey, compatible, headers } = config
 
     // Merge headers: defaults.headers as base, config-set headers override matching keys
@@ -181,8 +181,14 @@ export function createEnvProvider(
         return factories.createOpenAI(baseOpts)
       case 'anthropic':
         return factories.createAnthropic(baseOpts)
+      case 'openai-compatible':
+        return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
       default:
-        return factories.createOpenAICompatible({ name: compatible, ...baseOpts })
+        throw new Error(
+          `[ai-sdk-provider-env] Unknown compatible mode "${compatible}".`
+          + ` Supported values: "openai", "anthropic", "openai-compatible".`
+          + ` Set COMPATIBLE=openai-compatible (or omit it) to use the OpenAI-compatible provider.`,
+        )
     }
   }
 
@@ -196,7 +202,7 @@ export function createEnvProvider(
       return cached
 
     const config = resolveConfig(configSet)
-    const provider = createUnderlying(config)
+    const provider = createUnderlying(configSet, config)
     cache.set(key, provider)
     return provider
   }
@@ -284,7 +290,7 @@ export function createEnvProvider(
  * - `ZHIPU_PRESET`     — use a built-in preset (BASE_URL and COMPATIBLE become optional)
  * - `ZHIPU_BASE_URL`   — API base URL
  * - `ZHIPU_API_KEY`    — API key (required)
- * - `ZHIPU_COMPATIBLE` — compatibility mode (defaults to `'openai'`)
+ * - `ZHIPU_COMPATIBLE` — compatibility mode (defaults to `'openai-compatible'`)
  * - `ZHIPU_HEADERS`    — custom HTTP headers (JSON format)
  *
  * @example

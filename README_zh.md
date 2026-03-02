@@ -31,7 +31,7 @@ pnpm add ai-sdk-provider-env
 按需安裝 provider SDK：
 
 ```bash
-pnpm add @ai-sdk/openai            # OpenAI 及 OpenAI Compatible
+pnpm add @ai-sdk/openai            # OpenAI
 pnpm add @ai-sdk/anthropic         # Anthropic
 pnpm add @ai-sdk/openai-compatible # 其他 OpenAI Compatible 提供商
 ```
@@ -88,7 +88,7 @@ const review = await generateText({
 | `[MYAI]_API_KEY` | 是 | API 金鑰 |
 | `[MYAI]_BASE_URL` | 無 preset 時必填 | API base URL |
 | `[MYAI]_PRESET` | 否 | 內建 preset 名稱（如 `openai`） |
-| `[MYAI]_COMPATIBLE` | 否 | 相容模式（預設 `openai`） |
+| `[MYAI]_COMPATIBLE` | 否 | 相容模式（預設 `openai-compatible`） |
 | `[MYAI]_HEADERS` | 否 | 自訂 HTTP headers（JSON 格式） |
 
 設定 `PRESET` 後，`BASE_URL` 和 `COMPATIBLE` 可省略，會自動套用 preset 的預設值。
@@ -97,9 +97,9 @@ const review = await generateText({
 
 | 值 | 行為 |
 |---|---|
-| `openai` | 使用 `@ai-sdk/openai`（預設） |
+| `openai` | 使用 `@ai-sdk/openai` |
 | `anthropic` | 使用 `@ai-sdk/anthropic` |
-| 其他字串 | 使用 `@ai-sdk/openai-compatible`，以該字串作為 provider 名稱 |
+| `openai-compatible` | 使用 `@ai-sdk/openai-compatible`，以設定集名稱作為 provider 名稱（預設） |
 
 ## 內建 Presets
 
@@ -107,16 +107,16 @@ const review = await generateText({
 |---|---|---|
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
-| `deepseek` | `https://api.deepseek.com` | `openai` |
-| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai` |
-| `groq` | `https://api.groq.com/openai/v1` | `openai` |
-| `together` | `https://api.together.xyz/v1` | `openai` |
-| `fireworks` | `https://api.fireworks.ai/inference/v1` | `openai` |
-| `mistral` | `https://api.mistral.ai/v1` | `openai` |
-| `moonshot` | `https://api.moonshot.cn/v1` | `openai` |
-| `perplexity` | `https://api.perplexity.ai` | `openai` |
-| `openrouter` | `https://openrouter.ai/api/v1` | `openai` |
-| `siliconflow` | `https://api.siliconflow.cn/v1` | `openai` |
+| `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
+| `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
+| `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
+| `together` | `https://api.together.xyz/v1` | `openai-compatible` |
+| `fireworks` | `https://api.fireworks.ai/inference/v1` | `openai-compatible` |
+| `mistral` | `https://api.mistral.ai/v1` | `openai-compatible` |
+| `moonshot` | `https://api.moonshot.cn/v1` | `openai-compatible` |
+| `perplexity` | `https://api.perplexity.ai` | `openai-compatible` |
+| `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
+| `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
 
 ## API 參考
 
@@ -152,7 +152,7 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: string // 'openai' | 'anthropic' | 任意字串（預設 'openai'）
+  compatible?: 'openai' | 'anthropic' | 'openai-compatible' // 預設 'openai-compatible'
   headers?: Record<string, string>
 }
 ```
