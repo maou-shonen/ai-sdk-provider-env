@@ -1,4 +1,3 @@
-import type { ProviderV3 } from '@ai-sdk/provider'
 import type { ProviderFactories } from './env-provider'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { builtinPresets } from '.'
@@ -6,7 +5,7 @@ import { createEnvProvider } from './env-provider'
 
 // --- Mock helpers ---
 
-function createMockProvider(providerName: string): ProviderV3 {
+function createMockProvider(providerName: string) {
   return {
     specificationVersion: 'v3' as const,
     languageModel: mock((modelId: string) => ({
@@ -17,17 +16,7 @@ function createMockProvider(providerName: string): ProviderV3 {
       doGenerate: mock(),
       doStream: mock(),
     })),
-    embeddingModel: mock((modelId: string) => ({
-      specificationVersion: 'v3' as const,
-      provider: providerName,
-      modelId,
-    })),
-    imageModel: mock((modelId: string) => ({
-      specificationVersion: 'v3' as const,
-      provider: providerName,
-      modelId,
-    })),
-  } as unknown as ProviderV3
+  }
 }
 
 function createMockFactories() {
