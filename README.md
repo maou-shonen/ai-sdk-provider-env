@@ -17,7 +17,7 @@ Using multiple AI providers with Vercel AI SDK means importing each SDK, configu
 
 - Resolve provider config (base URL, API key, compatibility mode) from environment variables automatically
 - Built-in presets for popular providers, so you only need to set an API key
-- Supports OpenAI, Anthropic, and any OpenAI-compatible API
+- Supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible API
 - Implements `ProviderV3`, plugs directly into `createProviderRegistry`
 - Provider instances are cached, no redundant initialization
 - Fully customizable: custom fetch, env-based headers, custom separator, code-based configs
@@ -33,6 +33,7 @@ Install provider SDKs as needed:
 ```bash
 pnpm add @ai-sdk/openai            # for OpenAI
 pnpm add @ai-sdk/anthropic         # for Anthropic
+pnpm add @ai-sdk/google            # for Google AI Studio (Gemini)
 pnpm add @ai-sdk/openai-compatible # for generic OpenAI-compatible APIs
 ```
 
@@ -98,6 +99,7 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 |---|---|
 | `openai` | Uses `@ai-sdk/openai` |
 | `anthropic` | Uses `@ai-sdk/anthropic` |
+| `gemini` | Uses `@ai-sdk/google` |
 | `openai-compatible` | Uses `@ai-sdk/openai-compatible` with the config set name as the provider name (default) |
 
 ## Built-in Presets
@@ -106,6 +108,7 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 |---|---|---|
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
+| `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
@@ -174,7 +177,7 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: 'openai' | 'anthropic' | 'openai-compatible' // default: 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // default: 'openai-compatible'
   headers?: Record<string, string>
 }
 ```

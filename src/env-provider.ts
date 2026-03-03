@@ -3,7 +3,7 @@ import type { ProviderOpts } from './factories'
 import type { EnvProviderOptions } from './types'
 import process from 'node:process'
 import { NoSuchModelError } from '@ai-sdk/provider'
-import { createAnthropicProvider, createOpenAICompatibleProvider, createOpenAIProvider } from './factories'
+import { createAnthropicProvider, createGeminiProvider, createOpenAICompatibleProvider, createOpenAIProvider } from './factories'
 import { builtinPresets } from './presets'
 
 /**
@@ -15,6 +15,7 @@ import { builtinPresets } from './presets'
 export interface ProviderFactories {
   createOpenAI: (opts: ProviderOpts) => ProviderV3
   createAnthropic: (opts: ProviderOpts) => ProviderV3
+  createGemini: (opts: ProviderOpts) => ProviderV3
   createOpenAICompatible: (opts: ProviderOpts & { name: string }) => ProviderV3
 }
 
@@ -24,6 +25,7 @@ export interface ProviderFactories {
 const defaultFactories: ProviderFactories = {
   createOpenAI: createOpenAIProvider,
   createAnthropic: createAnthropicProvider,
+  createGemini: createGeminiProvider,
   createOpenAICompatible: createOpenAICompatibleProvider,
 }
 
@@ -200,12 +202,14 @@ export function createEnvProvider(
         return factories.createOpenAI(baseOpts)
       case 'anthropic':
         return factories.createAnthropic(baseOpts)
+      case 'gemini':
+        return factories.createGemini(baseOpts)
       case 'openai-compatible':
         return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
       default:
         throw new Error(
           `[ai-sdk-provider-env] Unknown compatible mode "${compatible}".`
-          + ` Supported values: "openai", "anthropic", "openai-compatible".`
+          + ` Supported values: "openai", "anthropic", "gemini", "openai-compatible".`
           + ` Set COMPATIBLE=openai-compatible (or omit it) to use the OpenAI-compatible provider.`,
         )
     }

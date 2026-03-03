@@ -61,6 +61,9 @@ function createMockFactories() {
   const mockCreateAnthropic = mock((opts: any) =>
     createMockProvider(`anthropic[${opts.baseURL}]`),
   )
+  const mockCreateGemini = mock((opts: any) =>
+    createMockProvider(`gemini[${opts.baseURL}]`),
+  )
   const mockCreateOpenAICompatible = mock((opts: any) =>
     createMockProvider(`openai-compatible[${opts.name}]`),
   )
@@ -68,10 +71,11 @@ function createMockFactories() {
   const factories: ProviderFactories = {
     createOpenAI: mockCreateOpenAI,
     createAnthropic: mockCreateAnthropic,
+    createGemini: mockCreateGemini,
     createOpenAICompatible: mockCreateOpenAICompatible,
   }
 
-  return { factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible }
+  return { factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible }
 }
 
 // --- Env var helpers ---
@@ -99,11 +103,12 @@ function clearTestEnv() {
 describe('envProvider', () => {
   let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
   let mockCreateAnthropic: ReturnType<typeof createMockFactories>['mockCreateAnthropic']
+  let mockCreateGemini: ReturnType<typeof createMockFactories>['mockCreateGemini']
   let mockCreateOpenAICompatible: ReturnType<typeof createMockFactories>['mockCreateOpenAICompatible']
   let factories: ProviderFactories
 
   beforeEach(() => {
-    ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible } = createMockFactories())
+    ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible } = createMockFactories())
   })
 
   afterEach(() => {
@@ -149,6 +154,21 @@ describe('envProvider', () => {
 
       expect(mockCreateAnthropic).toHaveBeenCalledWith({
         baseURL: 'https://api.anthropic.com',
+        apiKey: 'test-key',
+      })
+      expect(mockCreateOpenAI).not.toHaveBeenCalled()
+    })
+
+    it('should create gemini provider when COMPATIBLE=gemini', () => {
+      setEnv('MYAPI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'gemini')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('myapi/gemini-2.0-flash')
+
+      expect(mockCreateGemini).toHaveBeenCalledWith({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         apiKey: 'test-key',
       })
       expect(mockCreateOpenAI).not.toHaveBeenCalled()
@@ -472,6 +492,22 @@ describe('envProvider', () => {
         })
       })
 
+      it('should pass custom fetch to gemini provider', () => {
+        setEnv('TEST_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+        setEnv('TEST_API_KEY', 'key')
+        setEnv('TEST_COMPATIBLE', 'gemini')
+
+        const customFetch = mock() as unknown as typeof globalThis.fetch
+        const provider = createEnvProvider(factories, { defaults: { fetch: customFetch } })
+        provider.languageModel('test/gemini-2.0-flash')
+
+        expect(mockCreateGemini).toHaveBeenCalledWith({
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          apiKey: 'key',
+          fetch: customFetch,
+        })
+      })
+
       it('should pass custom fetch to explicit openai-compatible provider', () => {
         setEnv('TEST_BASE_URL', 'https://api.custom.com/v1')
         setEnv('TEST_API_KEY', 'key')
@@ -670,6 +706,18 @@ describe('envProvider', () => {
       expect(mockCreateAnthropic).toHaveBeenCalledWith({
         baseURL: 'https://api.anthropic.com',
         apiKey: 'ant-key',
+      })
+    })
+
+    it('should auto-detect google preset when only GOOGLE_API_KEY is set', () => {
+      setEnv('GOOGLE_API_KEY', 'google-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('google/gemini-2.0-flash')
+
+      expect(mockCreateGemini).toHaveBeenCalledWith({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: 'google-key',
       })
     })
 
