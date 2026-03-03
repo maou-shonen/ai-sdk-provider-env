@@ -17,7 +17,7 @@
 
 - 透過環境變數慣例（如 `OPENAI_BASE_URL`）自動解析提供商配置，無需手動初始化每個 provider
 - 內建多個常見提供商的 preset，只需設定 API Key 即可使用
-- 支援 OpenAI、Anthropic、OpenAI Compatible 三種相容模式
+- 支援 OpenAI、Anthropic、Google Gemini、OpenAI Compatible 四種相容模式
 - 實作 `ProviderV3` 介面，可直接接入 `createProviderRegistry`
 - Provider 實例自動快取，避免重複初始化
 - 支援自訂 fetch、環境變數設定 headers、自訂分隔符號、程式碼指定配置
@@ -33,6 +33,7 @@ pnpm add ai-sdk-provider-env
 ```bash
 pnpm add @ai-sdk/openai            # OpenAI
 pnpm add @ai-sdk/anthropic         # Anthropic
+pnpm add @ai-sdk/google            # Google AI Studio (Gemini)
 pnpm add @ai-sdk/openai-compatible # 其他 OpenAI Compatible 提供商
 ```
 
@@ -98,6 +99,7 @@ const review = await generateText({
 |---|---|
 | `openai` | 使用 `@ai-sdk/openai` |
 | `anthropic` | 使用 `@ai-sdk/anthropic` |
+| `gemini` | 使用 `@ai-sdk/google` |
 | `openai-compatible` | 使用 `@ai-sdk/openai-compatible`，以設定集名稱作為 provider 名稱（預設） |
 
 ## 內建 Presets
@@ -106,6 +108,7 @@ const review = await generateText({
 |---|---|---|
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
+| `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
@@ -174,7 +177,7 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: 'openai' | 'anthropic' | 'openai-compatible' // 預設 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // 預設 'openai-compatible'
   headers?: Record<string, string>
 }
 ```

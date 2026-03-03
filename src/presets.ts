@@ -19,6 +19,12 @@ export const builtinPresets: Record<string, PresetConfig> = {
     compatible: 'anthropic',
   },
 
+  // Google AI Studio (Gemini)
+  google: {
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+    compatible: 'gemini',
+  },
+
   // DeepSeek
   deepseek: {
     baseURL: 'https://api.deepseek.com',

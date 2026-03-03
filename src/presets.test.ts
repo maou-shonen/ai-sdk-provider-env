@@ -26,6 +26,9 @@ function createMockFactories() {
   const mockCreateAnthropic = mock((opts: any) =>
     createMockProvider(`anthropic[${opts.baseURL}]`),
   )
+  const mockCreateGemini = mock((opts: any) =>
+    createMockProvider(`gemini[${opts.baseURL}]`),
+  )
   const mockCreateOpenAICompatible = mock((opts: any) =>
     createMockProvider(`openai-compatible[${opts.name}]`),
   )
@@ -33,10 +36,11 @@ function createMockFactories() {
   const factories: ProviderFactories = {
     createOpenAI: mockCreateOpenAI,
     createAnthropic: mockCreateAnthropic,
+    createGemini: mockCreateGemini,
     createOpenAICompatible: mockCreateOpenAICompatible,
   }
 
-  return { factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible }
+  return { factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible }
 }
 
 // --- Env var helpers ---
@@ -64,11 +68,12 @@ function clearTestEnv() {
 describe('presets', () => {
   let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
   let mockCreateAnthropic: ReturnType<typeof createMockFactories>['mockCreateAnthropic']
+  let mockCreateGemini: ReturnType<typeof createMockFactories>['mockCreateGemini']
   let mockCreateOpenAICompatible: ReturnType<typeof createMockFactories>['mockCreateOpenAICompatible']
   let factories: ProviderFactories
 
   beforeEach(() => {
-    ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateOpenAICompatible } = createMockFactories())
+    ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible } = createMockFactories())
   })
 
   afterEach(() => {
@@ -128,6 +133,19 @@ describe('presets', () => {
       expect(mockCreateAnthropic).toHaveBeenCalledWith({
         baseURL: 'https://api.anthropic.com',
         apiKey: 'ant-key',
+      })
+    })
+
+    it('should use google preset correctly', () => {
+      setEnv('G_API_KEY', 'google-key')
+      setEnv('G_PRESET', 'google')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('g/gemini-2.0-flash')
+
+      expect(mockCreateGemini).toHaveBeenCalledWith({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: 'google-key',
       })
     })
   })

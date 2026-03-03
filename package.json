@@ -48,6 +48,7 @@
   },
   "peerDependencies": {
     "@ai-sdk/anthropic": ">=3.0.0",
+    "@ai-sdk/google": ">=3.0.0",
     "@ai-sdk/openai": ">=3.0.0",
     "@ai-sdk/openai-compatible": ">=2.0.0",
     "@ai-sdk/provider": ">=3.0.0",
@@ -55,6 +56,9 @@
   },
   "peerDependenciesMeta": {
     "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
       "optional": true
     },
     "@ai-sdk/openai": {
@@ -66,6 +70,7 @@
   },
   "devDependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
     "@ai-sdk/openai-compatible": "^2.0.0",
     "@ai-sdk/provider": "^3.0.0",

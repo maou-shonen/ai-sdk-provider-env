@@ -20,9 +20,10 @@ export interface ConfigSetEntry {
    *
    * - `'openai'` — uses `createOpenAI`
    * - `'anthropic'` — uses `createAnthropic`
+   * - `'gemini'` — uses `createGoogleGenerativeAI`
    * - `'openai-compatible'` — uses `createOpenAICompatible` with the config set name as the provider name (default)
    */
-  compatible?: 'openai' | 'anthropic' | 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
   /**
    * Custom HTTP headers appended to API requests.
    *
@@ -45,9 +46,10 @@ export interface PresetConfig {
    *
    * - `'openai'` — uses `createOpenAI`
    * - `'anthropic'` — uses `createAnthropic`
+   * - `'gemini'` — uses `createGoogleGenerativeAI`
    * - `'openai-compatible'` — uses `createOpenAICompatible` with the config set name as the provider name (default)
    */
-  compatible?: 'openai' | 'anthropic' | 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
 }
 
 /**

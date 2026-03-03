@@ -46,6 +46,25 @@ export function createAnthropicProvider(opts: ProviderOpts): ProviderV3 {
 }
 
 /**
+ * Create a Google Generative AI (Gemini) provider.
+ *
+ * Dynamically requires `@ai-sdk/google`, so it only needs to be installed when actually used.
+ */
+export function createGeminiProvider(opts: ProviderOpts): ProviderV3 {
+  try {
+    // eslint-disable-next-line ts/no-require-imports
+    const { createGoogleGenerativeAI } = require('@ai-sdk/google')
+    return createGoogleGenerativeAI(opts)
+  }
+  catch {
+    throw new Error(
+      '[ai-sdk-provider-env] gemini compatibility mode requires @ai-sdk/google. '
+      + 'Run: npm install @ai-sdk/google',
+    )
+  }
+}
+
+/**
  * Create an OpenAI Compatible provider.
  *
  * Dynamically requires `@ai-sdk/openai-compatible`, so it only needs to be installed when actually used.
