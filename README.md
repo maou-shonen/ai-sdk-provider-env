@@ -162,6 +162,7 @@ const provider = envProvider(options)
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | Explicit config sets (takes precedence over env vars) |
 | `defaults` | `EnvProviderDefaults` | `undefined` | Global defaults applied to all providers (can be overridden per config set) |
 | `presetAutoDetect` | `boolean` | `true` | Auto-apply a built-in preset when the config set name matches. Set to `false` to require explicit `_PRESET` configuration. |
+| `factories` | `EnvProviderFactories` | `undefined` | User-provided factory functions for [bundler-safe usage](#bundler-usage). |
 
 **`EnvProviderDefaults`:**
 
@@ -298,3 +299,26 @@ const registry = createProviderRegistry({
   openai: createOpenAI({ apiKey: process.env.OPENAI_API_KEY }),
 })
 ```
+
+## Bundler Usage
+
+Works out of the box without a bundler. If you bundle your app, two options:
+
+**Option A** — mark packages as external (server-side with `node_modules`):
+
+```bash
+bun build --packages=external
+```
+
+**Option B** — provide explicit factories (single-file / `bun build --compile`):
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: { openai: createOpenAI },
+})
+```
+
+For the full guide (factory key mapping, lazy-strict behavior, combining with other options), see **[Bundler Usage Guide](./docs/bundler.md)**.

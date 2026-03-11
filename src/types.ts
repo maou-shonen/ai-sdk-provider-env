@@ -85,6 +85,66 @@ export interface EnvProviderDefaults {
 }
 
 /**
+ * Options passed to user-provided factory functions.
+ *
+ * This is the library's own type — it does NOT reference any optional peer dependency types,
+ * so your `.d.ts` output won't force consumers to install `@ai-sdk/*` packages.
+ */
+export interface EnvProviderFactoryOptions {
+  /** API base URL */
+  baseURL: string
+  /** API key */
+  apiKey: string
+  /** Custom HTTP headers */
+  headers?: Record<string, string>
+  /** Custom fetch implementation */
+  fetch?: typeof globalThis.fetch
+}
+
+/**
+ * Options passed to the `openai-compatible` factory function.
+ *
+ * Extends {@link EnvProviderFactoryOptions} with a `name` field
+ * that identifies the config set (used as the provider name).
+ */
+export interface EnvProviderNamedFactoryOptions extends EnvProviderFactoryOptions {
+  /** Config set name, used as the provider name */
+  name: string
+}
+
+/**
+ * User-provided factory functions for bundler-safe provider creation.
+ *
+ * When using a bundler (e.g. `bun build --compile`), dynamic `require()` calls
+ * cannot resolve optional peer dependencies. Providing factories via static imports
+ * allows the bundler to trace and include only the providers you actually use.
+ *
+ * @example
+ * ```ts
+ * import { createOpenAI } from '@ai-sdk/openai'
+ * import { createAnthropic } from '@ai-sdk/anthropic'
+ * import { envProvider } from 'ai-sdk-provider-env'
+ *
+ * const provider = envProvider({
+ *   factories: {
+ *     openai: createOpenAI,
+ *     anthropic: createAnthropic,
+ *   },
+ * })
+ * ```
+ */
+export interface EnvProviderFactories {
+  /** Factory for `compatible: 'openai'` — e.g. pass `createOpenAI` from `@ai-sdk/openai` */
+  openai?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
+  /** Factory for `compatible: 'anthropic'` — e.g. pass `createAnthropic` from `@ai-sdk/anthropic` */
+  anthropic?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
+  /** Factory for `compatible: 'gemini'` — e.g. pass `createGoogleGenerativeAI` from `@ai-sdk/google` */
+  gemini?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
+  /** Factory for `compatible: 'openai-compatible'` — e.g. pass `createOpenAICompatible` from `@ai-sdk/openai-compatible` */
+  openaiCompatible?: (options: EnvProviderNamedFactoryOptions) => import('@ai-sdk/provider').ProviderV3
+}
+
+/**
  * Options for `envProvider()`.
  */
 export interface EnvProviderOptions {
@@ -158,4 +218,23 @@ export interface EnvProviderOptions {
    * envProvider({ presetAutoDetect: false })
    */
   presetAutoDetect?: boolean
+
+  /**
+   * User-provided factory functions for bundler-safe provider creation.
+   *
+   * When set, the library uses these factories instead of dynamic `require()` calls.
+   * Only provide factories for the compatibility modes you actually use —
+   * a clear error is thrown if a missing factory is needed at runtime.
+   *
+   * @example
+   * ```ts
+   * import { createOpenAI } from '@ai-sdk/openai'
+   * import { envProvider } from 'ai-sdk-provider-env'
+   *
+   * const provider = envProvider({
+   *   factories: { openai: createOpenAI },
+   * })
+   * ```
+   */
+  factories?: EnvProviderFactories
 }

@@ -162,6 +162,7 @@ const provider = envProvider(options)
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | 在程式碼中明確指定設定集配置，優先於環境變數 |
 | `defaults` | `EnvProviderDefaults` | `undefined` | 全域預設值，套用到所有 provider（可被個別設定集覆蓋） |
 | `presetAutoDetect` | `boolean` | `true` | 設定集名稱與內建 preset 相符時自動套用。設為 `false` 則需明確設定 `_PRESET` 環境變數。 |
+| `factories` | `EnvProviderFactories` | `undefined` | 使用者提供的 factory 函式，用於 [bundler 安全模式](#bundler-使用方式)。 |
 
 **`EnvProviderDefaults`：**
 
@@ -298,3 +299,26 @@ const registry = createProviderRegistry({
   openai: createOpenAI({ apiKey: process.env.OPENAI_API_KEY }),
 })
 ```
+
+## Bundler 使用方式
+
+不使用 bundler 時開箱即用。如果你有打包需求，兩種方式：
+
+**方式 A** — 將套件標記為 external（server-side，有 `node_modules`）：
+
+```bash
+bun build --packages=external
+```
+
+**方式 B** — 提供明確的 factories（單檔 / `bun build --compile`）：
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: { openai: createOpenAI },
+})
+```
+
+完整指南（factory key 對應表、lazy-strict 行為、與其他選項搭配使用）詳見 **[Bundler 使用指南](./docs/bundler_zh.md)**。

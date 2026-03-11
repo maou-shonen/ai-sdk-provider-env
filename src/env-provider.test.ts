@@ -2,7 +2,7 @@ import type { ProviderV3 } from '@ai-sdk/provider'
 import type { ProviderFactories } from './env-provider'
 import { NoSuchModelError } from '@ai-sdk/provider'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { createEnvProvider } from './env-provider'
+import { createEnvProvider, envProvider } from './env-provider'
 
 // --- Mock helpers ---
 
@@ -1034,5 +1034,205 @@ describe('envProvider', () => {
           .toThrow(NoSuchModelError)
       })
     })
+  })
+})
+
+describe('envProvider with factories option', () => {
+  afterEach(() => {
+    clearTestEnv()
+  })
+
+  it('should use user-provided openai factory', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+    })
+    provider.languageModel('openai/gpt-4o')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: 'sk-test',
+    })
+  })
+
+  it('should use user-provided anthropic factory', () => {
+    setEnv('ANTHROPIC_API_KEY', 'ant-test')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-anthropic[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { anthropic: mockFactory },
+    })
+    provider.languageModel('anthropic/claude-sonnet-4-20250514')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://api.anthropic.com',
+      apiKey: 'ant-test',
+    })
+  })
+
+  it('should use user-provided gemini factory', () => {
+    setEnv('GOOGLE_API_KEY', 'google-test')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-gemini[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { gemini: mockFactory },
+    })
+    provider.languageModel('google/gemini-2.0-flash')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      apiKey: 'google-test',
+    })
+  })
+
+  it('should use user-provided openaiCompatible factory', () => {
+    setEnv('MYAPI_BASE_URL', 'https://api.custom.com/v1')
+    setEnv('MYAPI_API_KEY', 'custom-key')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-compat[${opts.name}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openaiCompatible: mockFactory },
+    })
+    provider.languageModel('myapi/some-model')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      name: 'myapi',
+      baseURL: 'https://api.custom.com/v1',
+      apiKey: 'custom-key',
+    })
+  })
+
+  it('should throw when a missing factory is actually needed (lazy-strict)', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+
+    // Provide anthropic but not openai
+    const provider = envProvider({
+      factories: {
+        anthropic: mock(() => createMockProvider('anthropic')),
+      },
+    })
+
+    expect(() => provider.languageModel('openai/gpt-4o'))
+      .toThrow('No factory provided for "openai"')
+
+    // Verify error message includes actionable import instructions
+    try {
+      provider.languageModel('openai/gpt-4o')
+    }
+    catch (e) {
+      expect((e as Error).message).toContain('createOpenAI')
+      expect((e as Error).message).toContain('@ai-sdk/openai')
+    }
+  })
+
+  it('should not throw for missing factory that is never used', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    // Only provide openai, never use anthropic — should not throw
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+    })
+    provider.languageModel('openai/gpt-4o')
+
+    expect(mockFactory).toHaveBeenCalledTimes(1)
+  })
+
+  it('should pass defaults.fetch through to user-provided factory', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+
+    const customFetch = mock() as unknown as typeof globalThis.fetch
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+      defaults: { fetch: customFetch },
+    })
+    provider.languageModel('openai/gpt-4o')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: 'sk-test',
+      fetch: customFetch,
+    })
+  })
+
+  it('should pass merged headers to user-provided factory', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+    setEnv('OPENAI_HEADERS', '{"X-Custom":"from-env"}')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+      defaults: { headers: { 'X-Default': 'default-val' } },
+    })
+    provider.languageModel('openai/gpt-4o')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: 'sk-test',
+      headers: { 'X-Default': 'default-val', 'X-Custom': 'from-env' },
+    })
+  })
+
+  it('should work with partial factories and configs option', () => {
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+      configs: {
+        myopenai: {
+          preset: 'openai',
+          apiKey: 'code-key',
+        },
+      },
+    })
+    provider.languageModel('myopenai/gpt-4o')
+
+    expect(mockFactory).toHaveBeenCalledWith({
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: 'code-key',
+    })
+  })
+
+  it('should cache providers with user-provided factories', () => {
+    setEnv('OPENAI_API_KEY', 'sk-test')
+
+    const mockFactory = mock((opts: any) =>
+      createMockProvider(`user-openai[${opts.baseURL}]`),
+    )
+
+    const provider = envProvider({
+      factories: { openai: mockFactory },
+    })
+    provider.languageModel('openai/gpt-4o')
+    provider.languageModel('openai/gpt-4o-mini')
+
+    // Factory should only be called once (cached)
+    expect(mockFactory).toHaveBeenCalledTimes(1)
   })
 })
