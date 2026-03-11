@@ -3,7 +3,7 @@ import { mkdtemp, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-const PROJECT_ROOT = resolve(import.meta.dirname, '..')
+const PROJECT_ROOT = resolve(import.meta.dirname, '../..')
 const DIST_INDEX = join(PROJECT_ROOT, 'dist/index.mjs')
 
 describe('bundler e2e', () => {

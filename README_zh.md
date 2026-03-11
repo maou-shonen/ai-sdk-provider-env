@@ -302,4 +302,23 @@ const registry = createProviderRegistry({
 
 ## Bundler 使用方式
 
-本函式庫使用動態 `require()` 在執行期載入依賴，不使用 bundler 時開箱即用。如果你有打包需求（例如 `bun build`），可以將套件標記為 external，或使用 `factories` 選項產生完全獨立的打包輸出。詳見 **[Bundler 使用指南](./docs/bundler_zh.md)**。
+不使用 bundler 時開箱即用。如果你有打包需求，兩種方式：
+
+**方式 A** — 將套件標記為 external（server-side，有 `node_modules`）：
+
+```bash
+bun build --packages=external
+```
+
+**方式 B** — 提供明確的 factories（單檔 / `bun build --compile`）：
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: { openai: createOpenAI },
+})
+```
+
+完整指南（factory key 對應表、lazy-strict 行為、與其他選項搭配使用）詳見 **[Bundler 使用指南](./docs/bundler_zh.md)**。

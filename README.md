@@ -302,4 +302,23 @@ const registry = createProviderRegistry({
 
 ## Bundler Usage
 
-This library uses dynamic `require()` at runtime, which works out of the box without a bundler. If you bundle your app (e.g. `bun build`), you can either mark packages as external or use the `factories` option for fully self-contained builds. See **[Bundler Usage Guide](./docs/bundler.md)** for details.
+Works out of the box without a bundler. If you bundle your app, two options:
+
+**Option A** — mark packages as external (server-side with `node_modules`):
+
+```bash
+bun build --packages=external
+```
+
+**Option B** — provide explicit factories (single-file / `bun build --compile`):
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: { openai: createOpenAI },
+})
+```
+
+For the full guide (factory key mapping, lazy-strict behavior, combining with other options), see **[Bundler Usage Guide](./docs/bundler.md)**.
