@@ -302,46 +302,4 @@ const registry = createProviderRegistry({
 
 ## Bundler Usage
 
-This library uses dynamic `require()` to load optional peer dependencies at runtime. This works out of the box for **Node.js / Bun servers** where `node_modules` is available. If you use a **bundler**, choose one of the approaches below depending on your deployment target.
-
-### Approach 1: Mark packages as external (recommended for server-side)
-
-If your bundled output runs in an environment with `node_modules` (Docker, traditional servers, most serverless platforms), simply externalize the packages:
-
-```bash
-# Bun
-bun build --packages=external
-
-# Or target specific packages
-bun build --external '@ai-sdk/*'
-```
-
-For esbuild, webpack, or Vite, use the equivalent `external` configuration.
-
-### Approach 2: Provide explicit factories (recommended for single-file / compile)
-
-If your bundled output must be fully self-contained (e.g. `bun build --compile`), pass factory functions via static imports so the bundler can trace and include them:
-
-```ts
-import { createOpenAI } from '@ai-sdk/openai'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { envProvider } from 'ai-sdk-provider-env'
-
-const provider = envProvider({
-  factories: {
-    openai: createOpenAI,
-    anthropic: createAnthropic,
-  },
-})
-```
-
-Only provide the factories you actually use. If a config set resolves to a compatibility mode without a matching factory, a clear error is thrown at runtime.
-
-**Factory key mapping:**
-
-| `compatible` value | `factories` key | Package |
-|---|---|---|
-| `openai` | `openai` | `@ai-sdk/openai` |
-| `anthropic` | `anthropic` | `@ai-sdk/anthropic` |
-| `gemini` | `gemini` | `@ai-sdk/google` |
-| `openai-compatible` | `openaiCompatible` | `@ai-sdk/openai-compatible` |
+This library uses dynamic `require()` at runtime, which works out of the box without a bundler. If you bundle your app (e.g. `bun build`), you can either mark packages as external or use the `factories` option for fully self-contained builds. See **[Bundler Usage Guide](./docs/bundler.md)** for details.
