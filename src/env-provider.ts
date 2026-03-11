@@ -1,6 +1,6 @@
 import type { ProviderV3 } from '@ai-sdk/provider'
 import type { ProviderOpts } from './factories'
-import type { EnvProviderOptions } from './types'
+import type { EnvProviderFactories, EnvProviderOptions } from './types'
 import process from 'node:process'
 import { NoSuchModelError } from '@ai-sdk/provider'
 import { createAnthropicProvider, createGeminiProvider, createOpenAICompatibleProvider, createOpenAIProvider } from './factories'
@@ -304,6 +304,42 @@ export function createEnvProvider(
 }
 
 /**
+ * Build internal `ProviderFactories` from user-provided `EnvProviderFactories`.
+ *
+ * Uses lazy-strict semantics: each factory slot is only evaluated when actually called.
+ * If the user provided a factory for a given compatible mode, it is used;
+ * otherwise, a clear error is thrown (no silent fallback to dynamic `require()`).
+ */
+function buildUserFactories(userFactories: EnvProviderFactories): ProviderFactories {
+  function missingFactory(key: string, fnName: string, pkg: string): never {
+    throw new Error(
+      `[ai-sdk-provider-env] No factory provided for "${key}". `
+      + `When using the factories option, provide a factory for each compatibility mode you use. `
+      + `Add: import { ${fnName} } from '${pkg}' and set factories: { ${key}: ${fnName} }`,
+    )
+  }
+
+  return {
+    createOpenAI: opts =>
+      userFactories.openai
+        ? userFactories.openai(opts)
+        : missingFactory('openai', 'createOpenAI', '@ai-sdk/openai'),
+    createAnthropic: opts =>
+      userFactories.anthropic
+        ? userFactories.anthropic(opts)
+        : missingFactory('anthropic', 'createAnthropic', '@ai-sdk/anthropic'),
+    createGemini: opts =>
+      userFactories.gemini
+        ? userFactories.gemini(opts)
+        : missingFactory('gemini', 'createGoogleGenerativeAI', '@ai-sdk/google'),
+    createOpenAICompatible: opts =>
+      userFactories.openaiCompatible
+        ? userFactories.openaiCompatible(opts)
+        : missingFactory('openaiCompatible', 'createOpenAICompatible', '@ai-sdk/openai-compatible'),
+  }
+}
+
+/**
  * Create a dynamic, environment-variable-driven AI SDK provider.
  *
  * Automatically resolves provider configurations from env var naming conventions,
@@ -335,7 +371,20 @@ export function createEnvProvider(
  * // MYAPI_API_KEY=xxx
  * const model2 = registry.languageModel('env:myapi/some-model')
  * ```
+ *
+ * @example Bundler-safe usage with explicit factories
+ * ```ts
+ * import { createOpenAI } from '@ai-sdk/openai'
+ * import { envProvider } from 'ai-sdk-provider-env'
+ *
+ * const provider = envProvider({
+ *   factories: { openai: createOpenAI },
+ * })
+ * ```
  */
 export function envProvider(options: EnvProviderOptions = {}): ProviderV3 {
-  return createEnvProvider(defaultFactories, options)
+  const factories = options.factories
+    ? buildUserFactories(options.factories)
+    : defaultFactories
+  return createEnvProvider(factories, options)
 }

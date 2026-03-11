@@ -162,6 +162,7 @@ const provider = envProvider(options)
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | 在程式碼中明確指定設定集配置，優先於環境變數 |
 | `defaults` | `EnvProviderDefaults` | `undefined` | 全域預設值，套用到所有 provider（可被個別設定集覆蓋） |
 | `presetAutoDetect` | `boolean` | `true` | 設定集名稱與內建 preset 相符時自動套用。設為 `false` 則需明確設定 `_PRESET` 環境變數。 |
+| `factories` | `EnvProviderFactories` | `undefined` | 使用者提供的 factory 函式，用於 [bundler 安全模式](#bundler-使用方式)。 |
 
 **`EnvProviderDefaults`：**
 
@@ -298,3 +299,49 @@ const registry = createProviderRegistry({
   openai: createOpenAI({ apiKey: process.env.OPENAI_API_KEY }),
 })
 ```
+
+## Bundler 使用方式
+
+本函式庫使用動態 `require()` 在執行期載入 optional peer dependencies。在 **Node.js / Bun 伺服器**（有 `node_modules`）上開箱即用。如果你使用 **bundler**，請根據部署目標選擇以下方式。
+
+### 方式一：將套件標記為 external（推薦用於 server-side）
+
+如果打包後的輸出在有 `node_modules` 的環境中執行（Docker、傳統伺服器、大多數 serverless 平台），只需將套件標記為 external：
+
+```bash
+# Bun
+bun build --packages=external
+
+# 或指定特定套件
+bun build --external '@ai-sdk/*'
+```
+
+esbuild、webpack、Vite 請使用對應的 `external` 配置。
+
+### 方式二：提供明確的 factories（推薦用於單檔 / compile）
+
+如果打包後的輸出必須完全獨立（例如 `bun build --compile`），透過靜態 import 傳入 factory 函式，讓 bundler 能追蹤並打包所需的依賴：
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: {
+    openai: createOpenAI,
+    anthropic: createAnthropic,
+  },
+})
+```
+
+只需提供你實際使用的 factory。如果某個設定集解析到一個沒有對應 factory 的相容模式，會在執行期拋出明確的錯誤。
+
+**Factory key 對應表：**
+
+| `compatible` 值 | `factories` key | 套件 |
+|---|---|---|
+| `openai` | `openai` | `@ai-sdk/openai` |
+| `anthropic` | `anthropic` | `@ai-sdk/anthropic` |
+| `gemini` | `gemini` | `@ai-sdk/google` |
+| `openai-compatible` | `openaiCompatible` | `@ai-sdk/openai-compatible` |

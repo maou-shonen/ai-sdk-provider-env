@@ -162,6 +162,7 @@ const provider = envProvider(options)
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | Explicit config sets (takes precedence over env vars) |
 | `defaults` | `EnvProviderDefaults` | `undefined` | Global defaults applied to all providers (can be overridden per config set) |
 | `presetAutoDetect` | `boolean` | `true` | Auto-apply a built-in preset when the config set name matches. Set to `false` to require explicit `_PRESET` configuration. |
+| `factories` | `EnvProviderFactories` | `undefined` | User-provided factory functions for [bundler-safe usage](#bundler-usage). |
 
 **`EnvProviderDefaults`:**
 
@@ -298,3 +299,49 @@ const registry = createProviderRegistry({
   openai: createOpenAI({ apiKey: process.env.OPENAI_API_KEY }),
 })
 ```
+
+## Bundler Usage
+
+This library uses dynamic `require()` to load optional peer dependencies at runtime. This works out of the box for **Node.js / Bun servers** where `node_modules` is available. If you use a **bundler**, choose one of the approaches below depending on your deployment target.
+
+### Approach 1: Mark packages as external (recommended for server-side)
+
+If your bundled output runs in an environment with `node_modules` (Docker, traditional servers, most serverless platforms), simply externalize the packages:
+
+```bash
+# Bun
+bun build --packages=external
+
+# Or target specific packages
+bun build --external '@ai-sdk/*'
+```
+
+For esbuild, webpack, or Vite, use the equivalent `external` configuration.
+
+### Approach 2: Provide explicit factories (recommended for single-file / compile)
+
+If your bundled output must be fully self-contained (e.g. `bun build --compile`), pass factory functions via static imports so the bundler can trace and include them:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { envProvider } from 'ai-sdk-provider-env'
+
+const provider = envProvider({
+  factories: {
+    openai: createOpenAI,
+    anthropic: createAnthropic,
+  },
+})
+```
+
+Only provide the factories you actually use. If a config set resolves to a compatibility mode without a matching factory, a clear error is thrown at runtime.
+
+**Factory key mapping:**
+
+| `compatible` value | `factories` key | Package |
+|---|---|---|
+| `openai` | `openai` | `@ai-sdk/openai` |
+| `anthropic` | `anthropic` | `@ai-sdk/anthropic` |
+| `gemini` | `gemini` | `@ai-sdk/google` |
+| `openai-compatible` | `openaiCompatible` | `@ai-sdk/openai-compatible` |

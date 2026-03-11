@@ -1,3 +1,3 @@
 export { envProvider } from './env-provider'
 export { builtinPresets } from './presets'
-export type { ConfigSetEntry, EnvProviderDefaults, EnvProviderOptions, PresetConfig } from './types'
+export type { ConfigSetEntry, EnvProviderDefaults, EnvProviderFactories, EnvProviderFactoryOptions, EnvProviderNamedFactoryOptions, EnvProviderOptions, PresetConfig } from './types'
