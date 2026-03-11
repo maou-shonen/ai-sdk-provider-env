@@ -47,7 +47,7 @@ interface ResolvedConfig {
  */
 export function createEnvProvider(
   factories: ProviderFactories,
-  options: EnvProviderOptions = {},
+  options: Omit<EnvProviderOptions, 'factories'> = {},
 ): ProviderV3 {
   const separator = options.separator ?? '_'
   const defaultFetch = options.defaults?.fetch
