@@ -290,6 +290,21 @@ export function createEnvProvider(
   }
 
   /**
+   * Compute a cache key for the given config set.
+   *
+   * Explicit configs use the raw (uppercased) name, so `foo-bar` and `foo_bar`
+   * remain distinct when both are defined in `configs`.
+   * Env-var-backed config sets normalize hyphens to underscores, so aliases
+   * like `my-api` and `my_api` share one cached provider.
+   */
+  function getCacheKey(configSet: string): string {
+    if (options.configs?.[configSet]) {
+      return `config:${configSet.toUpperCase()}`
+    }
+    return `env:${configSet.replace(/-/g, '_').toUpperCase()}`
+  }
+
+  /**
    * Get or create a cached provider for the given config set.
    *
    * Returns `ProviderV3` via a safe cast from `ProviderV3Compatible`.
@@ -297,7 +312,7 @@ export function createEnvProvider(
    * method signatures — only `specificationVersion` and model type brands differ.
    */
   function getProvider(configSet: string): ProviderV3 {
-    const key = configSet.toUpperCase()
+    const key = getCacheKey(configSet)
     const cached = cache.get(key)
     if (cached)
       return cached

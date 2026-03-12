@@ -1410,6 +1410,38 @@ describe('envProvider', () => {
 
       expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(2)
     })
+
+    it('should share cached provider for hyphen/underscore aliases in env mode', () => {
+      setEnv('FOO_BAR_BASE_URL', 'https://api.example.com/v1')
+      setEnv('FOO_BAR_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('foo-bar/model-a')
+      provider.languageModel('foo_bar/model-b')
+
+      // Both aliases resolve to the same env vars → same cached provider
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(1)
+    })
+
+    it('should keep separate cache entries for distinct explicit configs', () => {
+      const provider = createEnvProvider(factories, {
+        configs: {
+          'foo-bar': {
+            baseURL: 'https://api-a.com',
+            apiKey: 'key-a',
+          },
+          'foo_bar': {
+            baseURL: 'https://api-b.com',
+            apiKey: 'key-b',
+          },
+        },
+      })
+      provider.languageModel('foo-bar/model')
+      provider.languageModel('foo_bar/model')
+
+      // Different explicit configs → separate providers
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('model type proxying', () => {
