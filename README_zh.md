@@ -99,6 +99,8 @@ provider.languageModel('deepseek/deepseek-chat')   // 直接可用
 | `perplexity` | `https://api.perplexity.ai` | `openai-compatible` |
 | `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
 | `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
+| `xai` | `https://api.x.ai/v1` | `openai-compatible` |
+| `zai` | `https://api.z.ai/api/paas/v4` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 
 停用自動偵測：`envProvider({ presetAutoDetect: false })`。詳見[進階用法](./docs/advanced_zh.md#preset-自動偵測)。

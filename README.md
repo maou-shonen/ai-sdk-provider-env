@@ -99,6 +99,8 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `perplexity` | `https://api.perplexity.ai` | `openai-compatible` |
 | `openrouter` | `https://openrouter.ai/api/v1` | `openai-compatible` |
 | `siliconflow` | `https://api.siliconflow.cn/v1` | `openai-compatible` |
+| `xai` | `https://api.x.ai/v1` | `openai-compatible` |
+| `zai` | `https://api.z.ai/api/paas/v4` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 
 To disable auto-detection: `envProvider({ presetAutoDetect: false })`. See [Advanced Usage](./docs/advanced.md#preset-auto-detect) for details.
