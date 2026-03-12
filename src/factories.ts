@@ -1,11 +1,4 @@
-import type { ProviderV3Compatible } from './types'
-
-export interface ProviderOpts {
-  baseURL: string
-  apiKey: string
-  headers?: Record<string, string>
-  fetch?: typeof globalThis.fetch
-}
+import type { EnvProviderFactoryOptions, EnvProviderNamedFactoryOptions, ProviderV3Compatible } from './types'
 
 /**
  * Check if an error is a "module not found" error for a specific package.
@@ -52,7 +45,7 @@ export function isModuleNotFoundError(error: unknown, packageName: string): bool
  * Dynamically requires `@ai-sdk/openai`, so it only needs to be installed when actually used.
  * When not installed, errors propagate to allow fallback to OpenAI-compatible provider.
  */
-export function createOpenAIProvider(opts: ProviderOpts): ProviderV3Compatible {
+export function createOpenAIProvider(opts: EnvProviderFactoryOptions): ProviderV3Compatible {
   // eslint-disable-next-line ts/no-require-imports
   const { createOpenAI } = require('@ai-sdk/openai')
   return createOpenAI(opts)
@@ -64,7 +57,7 @@ export function createOpenAIProvider(opts: ProviderOpts): ProviderV3Compatible {
  * Dynamically requires `@ai-sdk/anthropic`, so it only needs to be installed when actually used.
  * No fallback is available — Anthropic does not support the OpenAI-compatible protocol.
  */
-export function createAnthropicProvider(opts: ProviderOpts): ProviderV3Compatible {
+export function createAnthropicProvider(opts: EnvProviderFactoryOptions): ProviderV3Compatible {
   try {
     // eslint-disable-next-line ts/no-require-imports
     const { createAnthropic } = require('@ai-sdk/anthropic')
@@ -87,7 +80,7 @@ export function createAnthropicProvider(opts: ProviderOpts): ProviderV3Compatibl
  * Dynamically requires `@ai-sdk/google`, so it only needs to be installed when actually used.
  * No fallback is available — Google does not support the OpenAI-compatible protocol.
  */
-export function createGeminiProvider(opts: ProviderOpts): ProviderV3Compatible {
+export function createGeminiProvider(opts: EnvProviderFactoryOptions): ProviderV3Compatible {
   try {
     // eslint-disable-next-line ts/no-require-imports
     const { createGoogleGenerativeAI } = require('@ai-sdk/google')
@@ -109,7 +102,7 @@ export function createGeminiProvider(opts: ProviderOpts): ProviderV3Compatible {
  *
  * `@ai-sdk/openai-compatible` is a regular dependency and always available.
  */
-export function createOpenAICompatibleProvider(opts: ProviderOpts & { name: string }): ProviderV3Compatible {
+export function createOpenAICompatibleProvider(opts: EnvProviderNamedFactoryOptions): ProviderV3Compatible {
   // eslint-disable-next-line ts/no-require-imports
   const { createOpenAICompatible } = require('@ai-sdk/openai-compatible')
   return createOpenAICompatible(opts)

@@ -1,6 +1,5 @@
 import type { ProviderV3 } from '@ai-sdk/provider'
-import type { ProviderOpts } from './factories'
-import type { EnvProviderFactories, EnvProviderOptions, ProviderV3Compatible } from './types'
+import type { EnvProviderFactories, EnvProviderFactoryOptions, EnvProviderNamedFactoryOptions, EnvProviderOptions, ProviderV3Compatible } from './types'
 import process from 'node:process'
 import { NoSuchModelError } from '@ai-sdk/provider'
 import { createAnthropicProvider, createGeminiProvider, createOpenAICompatibleProvider, createOpenAIProvider, isModuleNotFoundError } from './factories'
@@ -28,10 +27,10 @@ class ProviderNotAvailableError extends Error {
  * are accepted.
  */
 export interface ProviderFactories {
-  createOpenAI: (opts: ProviderOpts) => ProviderV3Compatible
-  createAnthropic: (opts: ProviderOpts) => ProviderV3Compatible
-  createGemini: (opts: ProviderOpts) => ProviderV3Compatible
-  createOpenAICompatible: (opts: ProviderOpts & { name: string }) => ProviderV3Compatible
+  createOpenAI: (opts: EnvProviderFactoryOptions) => ProviderV3Compatible
+  createAnthropic: (opts: EnvProviderFactoryOptions) => ProviderV3Compatible
+  createGemini: (opts: EnvProviderFactoryOptions) => ProviderV3Compatible
+  createOpenAICompatible: (opts: EnvProviderNamedFactoryOptions) => ProviderV3Compatible
 }
 
 /**
