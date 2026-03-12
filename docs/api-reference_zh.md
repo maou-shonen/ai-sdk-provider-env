@@ -14,7 +14,7 @@ const provider = envProvider(options)
 
 | 選項 | 型別 | 預設值 | 說明 |
 |---|---|---|---|
-| `separator` | `string` | `'_'` | 環境變數前綴與變數名稱之間的分隔符號 |
+| `separator` | `string` | `'_'` | 環境變數前綴與變數名稱之間的分隔符號。必須符合 `[A-Za-z0-9_]+`（shell-safe）。 |
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | 程式碼中指定的設定集配置，優先於環境變數 |
 | `defaults` | `EnvProviderDefaults` | `undefined` | 全域預設值，套用到所有 provider（可被個別設定集覆蓋） |
 | `presetAutoDetect` | `boolean` | `true` | 設定集名稱與內建 preset 相符時自動套用。設為 `false` 則需明確設定 `_PRESET` |
@@ -47,4 +47,10 @@ interface ConfigSetEntry {
 
 第一個 `/` 分隔設定集名稱與模型 ID，之後的內容原封不動傳遞給底層 provider。
 
-範例：`openai/gpt-4o`、`anthropic/claude-sonnet-4-20250514`、`myapi/some-model`。
+**設定集命名規則**（環境變數解析路徑）：
+- 必須符合 `[A-Za-z_][A-Za-z0-9_-]*`——僅允許 ASCII 字母、數字、底線、連字號
+- 連字號（`-`）會正規化為底線（`_`）以查找環境變數：`my-api` → `MY_API_*`
+- `my-api` 與 `my_api` 解析到相同的環境變數
+- 不符合規則的名稱需使用 `configs` 選項
+
+範例：`openai/gpt-4o`、`my-api/some-model`、`anthropic/claude-sonnet-4-20250514`。

@@ -14,7 +14,7 @@ const provider = envProvider(options)
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `separator` | `string` | `'_'` | Separator between the prefix and the variable name |
+| `separator` | `string` | `'_'` | Separator between the prefix and the variable name. Must match `[A-Za-z0-9_]+` (shell-safe). |
 | `configs` | `Record<string, ConfigSetEntry>` | `undefined` | Explicit config sets (takes precedence over env vars) |
 | `defaults` | `EnvProviderDefaults` | `undefined` | Global defaults applied to all providers (can be overridden per config set) |
 | `presetAutoDetect` | `boolean` | `true` | Auto-apply a built-in preset when the config set name matches. Set to `false` to require explicit `_PRESET` configuration. |
@@ -47,4 +47,10 @@ interface ConfigSetEntry {
 
 The first `/` splits the config set name from the model ID. Everything after is passed as-is to the underlying provider.
 
-Examples: `openai/gpt-4o`, `anthropic/claude-sonnet-4-20250514`, `myapi/some-model`.
+**Config set naming rules** (env-var resolution path):
+- Must match `[A-Za-z_][A-Za-z0-9_-]*` — ASCII letters, digits, underscores, hyphens
+- Hyphens (`-`) are normalized to underscores (`_`) for env var lookup: `my-api` → `MY_API_*`
+- `my-api` and `my_api` resolve to the same env vars
+- Names outside these rules require the `configs` option
+
+Examples: `openai/gpt-4o`, `my-api/some-model`, `anthropic/claude-sonnet-4-20250514`.

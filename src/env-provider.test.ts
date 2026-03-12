@@ -339,6 +339,133 @@ describe('envProvider', () => {
     })
   })
 
+  describe('config set name validation', () => {
+    it('should accept names with hyphens and normalize to underscores', () => {
+      setEnv('FOO_BAR_BASE_URL', 'https://api.example.com/v1')
+      setEnv('FOO_BAR_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('foo-bar/some-model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'foo-bar',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should normalize multiple hyphens in config set name', () => {
+      setEnv('FOO_BAR_BAZ_BASE_URL', 'https://api.example.com/v1')
+      setEnv('FOO_BAR_BAZ_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('foo-bar-baz/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'foo-bar-baz',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should accept names with underscores (unchanged)', () => {
+      setEnv('FOO_BAR_BASE_URL', 'https://api.example.com/v1')
+      setEnv('FOO_BAR_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('foo_bar/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'foo_bar',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should accept names starting with underscore', () => {
+      setEnv('_INTERNAL_BASE_URL', 'https://api.example.com/v1')
+      setEnv('_INTERNAL_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('_internal/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: '_internal',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should reject names starting with a digit', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('123api/model'))
+        .toThrow('Invalid config set name')
+    })
+
+    it('should reject names with only hyphens', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('---/model'))
+        .toThrow('Invalid config set name')
+    })
+
+    it('should reject names with non-ASCII characters', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('café/model'))
+        .toThrow('Invalid config set name')
+    })
+
+    it('should reject names with spaces', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('foo bar/model'))
+        .toThrow('Invalid config set name')
+    })
+
+    it('should reject names with dots', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('foo.bar/model'))
+        .toThrow('Invalid config set name')
+    })
+
+    it('should mention configs option in validation error', () => {
+      const provider = createEnvProvider(factories)
+      expect(() => provider.languageModel('café/model'))
+        .toThrow('configs option')
+    })
+
+    it('should bypass validation for explicit configs', () => {
+      const provider = createEnvProvider(factories, {
+        configs: {
+          'café': {
+            baseURL: 'https://api.example.com/v1',
+            apiKey: 'test-key',
+          },
+        },
+      })
+
+      // Should NOT throw — configs bypasses name validation
+      provider.languageModel('café/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'café',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should show normalized prefix in error messages', () => {
+      setEnv('MY_API_BASE_URL', 'https://api.example.com/v1')
+
+      const provider = createEnvProvider(factories)
+      const err = (() => {
+        try { provider.languageModel('my-api/model') }
+        catch (e) { return e as Error }
+      })()
+
+      // Error should mention MY_API_API_KEY (normalized), not MY-API_API_KEY
+      expect(err?.message).toContain('MY_API_API_KEY')
+    })
+  })
+
   describe('error handling', () => {
     it('should throw when API_KEY is missing', () => {
       setEnv('NOKEY_BASE_URL', 'https://api.example.com/v1')
@@ -571,6 +698,60 @@ describe('envProvider', () => {
         name: 'ds',
         baseURL: 'https://api.deepseek.com',
         apiKey: 'key',
+      })
+    })
+
+    it('should reject separator containing hyphens on env-var resolution', () => {
+      const provider = createEnvProvider(factories, { separator: '-' })
+      // Does NOT throw at creation — only when env-var path is hit
+      expect(() => provider.languageModel('myapi/model'))
+        .toThrow('Invalid separator')
+    })
+
+    it('should reject separator containing spaces on env-var resolution', () => {
+      const provider = createEnvProvider(factories, { separator: ' ' })
+      expect(() => provider.languageModel('myapi/model'))
+        .toThrow('Invalid separator')
+    })
+
+    it('should reject empty separator on env-var resolution', () => {
+      const provider = createEnvProvider(factories, { separator: '' })
+      expect(() => provider.languageModel('myapi/model'))
+        .toThrow('Invalid separator')
+    })
+
+    it('should accept separator with letters and digits', () => {
+      setEnv('MYAPIx0xBASE_URL', 'https://api.example.com/v1')
+      setEnv('MYAPIx0xAPI_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories, { separator: 'x0x' })
+      provider.languageModel('myapi/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should allow invalid separator when only configs path is used', () => {
+      const provider = createEnvProvider(factories, {
+        separator: '-',
+        configs: {
+          myapi: {
+            baseURL: 'https://api.example.com/v1',
+            apiKey: 'test-key',
+          },
+        },
+      })
+
+      // Should NOT throw — configs bypasses separator validation
+      provider.languageModel('myapi/model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
       })
     })
   })
