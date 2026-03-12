@@ -17,7 +17,7 @@ Using multiple AI providers with Vercel AI SDK means importing each SDK, configu
 
 - Resolve provider config (base URL, API key, compatibility mode) from environment variables automatically
 - Built-in presets for popular providers, so you only need to set an API key
-- Supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible API
+- Supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible API (OpenAI mode falls back to openai-compatible at runtime when `node_modules` are available)
 - Implements `ProviderV3`, plugs directly into `createProviderRegistry`
 - Provider instances are cached, no redundant initialization
 - Fully customizable: custom fetch, env-based headers, custom separator, code-based configs
@@ -34,8 +34,9 @@ Install provider SDKs as needed:
 pnpm add @ai-sdk/openai            # for OpenAI
 pnpm add @ai-sdk/anthropic         # for Anthropic
 pnpm add @ai-sdk/google            # for Google AI Studio (Gemini)
-pnpm add @ai-sdk/openai-compatible # for generic OpenAI-compatible APIs
 ```
+
+`@ai-sdk/openai-compatible` is included as a dependency and used automatically when needed. For single-file / `bun build --compile` builds, provide an explicit `openaiCompatible` factory (see [Bundler Usage](./docs/bundler.md)).
 
 ## Quick Start
 
@@ -97,10 +98,18 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 
 | Value | Behavior |
 |---|---|
-| `openai` | Uses `@ai-sdk/openai` |
+| `openai` | Uses `@ai-sdk/openai`. Falls back to `@ai-sdk/openai-compatible` if not installed |
 | `anthropic` | Uses `@ai-sdk/anthropic` |
 | `gemini` | Uses `@ai-sdk/google` |
 | `openai-compatible` | Uses `@ai-sdk/openai-compatible` with the config set name as the provider name (default) |
+
+## Provider Fallback
+
+When `compatible: 'openai'` is used and `@ai-sdk/openai` is not installed, the provider falls back to `@ai-sdk/openai-compatible` when that package is resolvable at runtime (e.g. with `node_modules` available). For single-file / `bun build --compile` builds, provide an explicit `openaiCompatible` factory (see [Bundler Usage](./docs/bundler.md)).
+
+Anthropic and Google have no fallback. Their SDKs must be installed to use their respective compatibility modes.
+
+For full features like speech, transcription, and provider-specific tools, install the first-party SDK (`@ai-sdk/openai`, `@ai-sdk/anthropic`, or `@ai-sdk/google`).
 
 ## Built-in Presets
 

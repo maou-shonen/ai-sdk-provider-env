@@ -1,4 +1,29 @@
 /**
+ * A structural provider interface compatible with both `ProviderV3` and `ProviderV4`
+ * from `@ai-sdk/provider`.
+ *
+ * This type is intentionally broad so that factory functions from both
+ * `@ai-sdk/openai@3.x` (returns `ProviderV3`) and `@ai-sdk/openai@4.x`
+ * (returns `ProviderV4`) are accepted without requiring the consumer to
+ * install a specific major version of `@ai-sdk/provider`.
+ *
+ * @remarks
+ * We do NOT import `ProviderV4` directly because it only exists in
+ * `@ai-sdk/provider@>=4.0.0`. Referencing it in our `.d.ts` output would
+ * break users on `@ai-sdk/provider@3.x`.
+ */
+export interface ProviderV3Compatible {
+  readonly specificationVersion: string
+  languageModel: (modelId: string) => unknown
+  embeddingModel: (modelId: string) => unknown
+  imageModel: (modelId: string) => unknown
+  textEmbeddingModel?: ((modelId: string) => unknown) | undefined
+  transcriptionModel?: ((modelId: string) => unknown) | undefined
+  speechModel?: ((modelId: string) => unknown) | undefined
+  rerankingModel?: ((modelId: string) => unknown) | undefined
+}
+
+/**
  * Configuration for a single config set.
  *
  * Can be resolved automatically from environment variables, or specified explicitly in code.
@@ -87,7 +112,7 @@ export interface EnvProviderDefaults {
 /**
  * Options passed to user-provided factory functions.
  *
- * This is the library's own type — it does NOT reference any optional peer dependency types,
+ * This is the library's own type — it does NOT reference any provider SDK types,
  * so your `.d.ts` output won't force consumers to install `@ai-sdk/*` packages.
  */
 export interface EnvProviderFactoryOptions {
@@ -116,7 +141,7 @@ export interface EnvProviderNamedFactoryOptions extends EnvProviderFactoryOption
  * User-provided factory functions for bundler-safe provider creation.
  *
  * When using a bundler (e.g. `bun build --compile`), dynamic `require()` calls
- * cannot resolve optional peer dependencies. Providing factories via static imports
+ * cannot resolve provider SDKs. Providing factories via static imports
  * allows the bundler to trace and include only the providers you actually use.
  *
  * @example
@@ -134,14 +159,33 @@ export interface EnvProviderNamedFactoryOptions extends EnvProviderFactoryOption
  * ```
  */
 export interface EnvProviderFactories {
-  /** Factory for `compatible: 'openai'` — e.g. pass `createOpenAI` from `@ai-sdk/openai` */
-  openai?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
-  /** Factory for `compatible: 'anthropic'` — e.g. pass `createAnthropic` from `@ai-sdk/anthropic` */
-  anthropic?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
-  /** Factory for `compatible: 'gemini'` — e.g. pass `createGoogleGenerativeAI` from `@ai-sdk/google` */
-  gemini?: (options: EnvProviderFactoryOptions) => import('@ai-sdk/provider').ProviderV3
-  /** Factory for `compatible: 'openai-compatible'` — e.g. pass `createOpenAICompatible` from `@ai-sdk/openai-compatible` */
-  openaiCompatible?: (options: EnvProviderNamedFactoryOptions) => import('@ai-sdk/provider').ProviderV3
+  /**
+   * Factory for `compatible: 'openai'` — e.g. pass `createOpenAI` from `@ai-sdk/openai`.
+   * If not provided, falls back to `@ai-sdk/openai-compatible` via dynamic `require()` (works in environments with `node_modules`).
+   *
+   * Accepts factories returning either `ProviderV3` (`@ai-sdk/openai@3.x`) or
+   * `ProviderV4` (`@ai-sdk/openai@4.x`).
+   */
+  openai?: (options: EnvProviderFactoryOptions) => ProviderV3Compatible
+  /**
+   * Factory for `compatible: 'anthropic'` — e.g. pass `createAnthropic` from `@ai-sdk/anthropic`.
+   *
+   * Accepts factories returning either `ProviderV3` or `ProviderV4`.
+   */
+  anthropic?: (options: EnvProviderFactoryOptions) => ProviderV3Compatible
+  /**
+   * Factory for `compatible: 'gemini'` — e.g. pass `createGoogleGenerativeAI` from `@ai-sdk/google`.
+   *
+   * Accepts factories returning either `ProviderV3` or `ProviderV4`.
+   */
+  gemini?: (options: EnvProviderFactoryOptions) => ProviderV3Compatible
+  /**
+   * Factory for `compatible: 'openai-compatible'` — e.g. pass `createOpenAICompatible` from `@ai-sdk/openai-compatible`.
+   * If not provided, falls back to `@ai-sdk/openai-compatible` via dynamic `require()` (works in environments with `node_modules`).
+   *
+   * Accepts factories returning either `ProviderV3` or `ProviderV4`.
+   */
+  openaiCompatible?: (options: EnvProviderNamedFactoryOptions) => ProviderV3Compatible
 }
 
 /**
