@@ -10,7 +10,7 @@ Environment-variable-driven provider for [Vercel AI SDK](https://sdk.vercel.ai/)
 ## Quick Start
 
 ```bash
-pnpm add ai-sdk-provider-env @ai-sdk/openai
+pnpm add ai-sdk-provider-env
 ```
 
 ```bash

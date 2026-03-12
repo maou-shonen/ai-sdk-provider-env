@@ -10,7 +10,7 @@
 ## 快速開始
 
 ```bash
-pnpm add ai-sdk-provider-env @ai-sdk/openai
+pnpm add ai-sdk-provider-env
 ```
 
 ```bash
