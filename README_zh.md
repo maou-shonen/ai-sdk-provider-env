@@ -32,7 +32,7 @@ const { text } = await generateText({
 
 設定集名稱 `openai` 自動匹配內建 preset，只需設定 API key 即可。
 
-任意環境變數前綴即為一組設定集。兩個端點，零行程式碼修改：
+任意[合法的](#環境變數)環境變數前綴即為一組設定集。兩個端點，零行程式碼修改：
 
 ```bash
 # .env
@@ -51,6 +51,21 @@ provider.languageModel('smart/gpt-4o')
 ## 環境變數
 
 模型 ID 格式：`{設定集}/{模型ID}`。設定集名稱對應大寫的環境變數前綴。
+
+設定集名稱必須符合 `[A-Za-z_][A-Za-z0-9_-]*`——僅允許 ASCII 字母、數字、底線與連字號。**連字號會自動正規化為底線**以產生合法的環境變數名稱：
+
+```bash
+# 設定集 "my-api" → 讀取 MY_API_* 環境變數
+MY_API_BASE_URL=https://api.example.com/v1
+MY_API_API_KEY=sk-xxx
+```
+
+```ts
+provider.languageModel('my-api/some-model')  // 讀取 MY_API_* 環境變數
+provider.languageModel('my_api/some-model')  // 相同的環境變數
+```
+
+> 若設定集名稱不符合上述規則（如 Unicode、句點），請改用 [`configs` 選項](./docs/advanced_zh.md#程式碼配置)。
 
 | 環境變數 | 必填 | 說明 |
 |---|---|---|

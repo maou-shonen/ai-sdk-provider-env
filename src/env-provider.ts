@@ -123,7 +123,29 @@ export function createEnvProvider(
       }
     }
 
-    const prefix = configSet.toUpperCase()
+    // --- All checks below apply only to the env-var resolution path ---
+    // The configs option (above) bypasses these and accepts arbitrary names/separators.
+
+    // Validate separator produces shell-safe env var names (deferred to first env-var use)
+    if (!/^\w+$/.test(separator)) {
+      throw new Error(
+        `[ai-sdk-provider-env] Invalid separator "${separator}". `
+        + `Separator must only contain ASCII letters, digits, or underscores to produce shell-safe env var names.`,
+      )
+    }
+
+    // Validate config set name (ASCII shell-safe names only)
+    if (!/^[A-Z_][\w-]*$/i.test(configSet)) {
+      throw new Error(
+        `[ai-sdk-provider-env] Invalid config set name "${configSet}". `
+        + `Names must start with a letter or underscore, followed by letters, digits, underscores, or hyphens. `
+        + `For arbitrary names, use the configs option instead.`,
+      )
+    }
+
+    // Normalize hyphens to underscores for POSIX shell-safe env var names.
+    // e.g. "my-api" → "MY_API", so env vars are MY_API_API_KEY, MY_API_BASE_URL, etc.
+    const prefix = configSet.replace(/-/g, '_').toUpperCase()
     const env = (key: string): string | undefined => process.env[`${prefix}${separator}${key}`]
 
     const apiKey = env('API_KEY')
@@ -268,6 +290,21 @@ export function createEnvProvider(
   }
 
   /**
+   * Compute a cache key for the given config set.
+   *
+   * Explicit configs use the raw (uppercased) name, so `foo-bar` and `foo_bar`
+   * remain distinct when both are defined in `configs`.
+   * Env-var-backed config sets normalize hyphens to underscores, so aliases
+   * like `my-api` and `my_api` share one cached provider.
+   */
+  function getCacheKey(configSet: string): string {
+    if (options.configs?.[configSet]) {
+      return `config:${configSet.toUpperCase()}`
+    }
+    return `env:${configSet.replace(/-/g, '_').toUpperCase()}`
+  }
+
+  /**
    * Get or create a cached provider for the given config set.
    *
    * Returns `ProviderV3` via a safe cast from `ProviderV3Compatible`.
@@ -275,7 +312,7 @@ export function createEnvProvider(
    * method signatures — only `specificationVersion` and model type brands differ.
    */
   function getProvider(configSet: string): ProviderV3 {
-    const key = configSet.toUpperCase()
+    const key = getCacheKey(configSet)
     const cached = cache.get(key)
     if (cached)
       return cached
@@ -411,6 +448,12 @@ function buildUserFactories(userFactories: EnvProviderFactories): ProviderFactor
  *
  * Automatically resolves provider configurations from env var naming conventions,
  * with built-in preset support for quick setup.
+ *
+ * Config set naming rules:
+ * - Names must match `[A-Za-z_][A-Za-z0-9_-]*` (ASCII letters, digits, underscores, hyphens)
+ * - Hyphens are normalized to underscores for env var lookup:
+ *   `my-api/model` → reads `MY_API_API_KEY`, `MY_API_BASE_URL`, etc.
+ * - For arbitrary names, use the `configs` option instead
  *
  * Env var convention (using config set `ZHIPU` with default separator `_` as example):
  * - `ZHIPU_PRESET`     — use a built-in preset (BASE_URL and COMPATIBLE become optional)

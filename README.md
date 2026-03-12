@@ -32,7 +32,7 @@ const { text } = await generateText({
 
 The config set name `openai` auto-matches the built-in preset — only an API key is needed.
 
-Any env var prefix becomes a config set. Two endpoints, zero code changes:
+Any [valid](#environment-variables) env var prefix becomes a config set. Two endpoints, zero code changes:
 
 ```bash
 # .env
@@ -51,6 +51,21 @@ provider.languageModel('smart/gpt-4o')
 ## Environment Variables
 
 Model ID format: `{configSet}/{modelId}`. The config set maps to an uppercased env var prefix.
+
+Config set names must match `[A-Za-z_][A-Za-z0-9_-]*` — ASCII letters, digits, underscores, and hyphens. **Hyphens are automatically normalized to underscores** for env var lookup:
+
+```bash
+# Config set "my-api" → reads MY_API_* env vars
+MY_API_BASE_URL=https://api.example.com/v1
+MY_API_API_KEY=sk-xxx
+```
+
+```ts
+provider.languageModel('my-api/some-model')  // reads MY_API_* env vars
+provider.languageModel('my_api/some-model')  // same env vars
+```
+
+> For config set names outside these rules (e.g. Unicode, dots), use the [`configs` option](./docs/advanced.md#code-based-configs) instead.
 
 | Variable | Required | Description |
 |---|---|---|

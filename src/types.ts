@@ -195,6 +195,10 @@ export interface EnvProviderOptions {
   /**
    * Separator between the env var prefix and the variable name.
    *
+   * Must only contain ASCII letters, digits, or underscores (`[A-Za-z0-9_]+`)
+   * to produce POSIX shell-safe env var names. An error is thrown if the
+   * separator contains other characters (e.g. `-`, spaces).
+   *
    * @default '_'
    * @example
    * // Default separator '_'

@@ -56,12 +56,37 @@ const model = provider.languageModel('openai/gpt-4o')
 
 ## Custom Separator
 
-If single underscores conflict with your naming scheme, use double underscores or any other string:
+If single underscores conflict with your naming scheme, use double underscores or any other shell-safe string:
 
 ```ts
 const provider = envProvider({ separator: '__' })
 
 // Now reads: OPENAI__BASE_URL, OPENAI__API_KEY, OPENAI__PRESET, OPENAI__COMPATIBLE
+```
+
+The separator must only contain ASCII letters, digits, or underscores (`[A-Za-z0-9_]+`). Characters like `-` or spaces are rejected since they produce env var names that are invalid in POSIX shells.
+
+## Config Set Naming
+
+Config set names (the part before `/` in the model ID) must match `[A-Za-z_][A-Za-z0-9_-]*` when resolved via env vars. Hyphens are normalized to underscores:
+
+```ts
+// Both read the same env vars: MY_API_API_KEY, MY_API_BASE_URL, etc.
+provider.languageModel('my-api/model')
+provider.languageModel('my_api/model')
+```
+
+Names that don't meet this requirement (Unicode, dots, digits at start, etc.) are rejected with an actionable error. Use [`configs`](#code-based-configs) for arbitrary names — it bypasses all naming restrictions:
+
+```ts
+const provider = envProvider({
+  configs: {
+    'my.special" provider': {
+      baseURL: 'https://api.example.com/v1',
+      apiKey: 'key',
+    },
+  },
+})
 ```
 
 ## Custom Fetch

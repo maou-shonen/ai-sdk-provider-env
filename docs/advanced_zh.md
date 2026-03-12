@@ -64,6 +64,31 @@ const provider = envProvider({ separator: '__' })
 // 對應環境變數：OPENAI__BASE_URL、OPENAI__API_KEY、OPENAI__PRESET、OPENAI__COMPATIBLE
 ```
 
+分隔符號僅允許 ASCII 字母、數字或底線（`[A-Za-z0-9_]+`）。包含 `-` 或空格等字元會被拒絕，因為這些字元會產生不符合 POSIX shell 規範的環境變數名稱。
+
+## 設定集命名規則
+
+設定集名稱（模型 ID 中 `/` 前的部分）在透過環境變數解析時，必須符合 `[A-Za-z_][A-Za-z0-9_-]*`。連字號會自動正規化為底線：
+
+```ts
+// 兩者讀取相同的環境變數：MY_API_API_KEY、MY_API_BASE_URL 等
+provider.languageModel('my-api/model')
+provider.languageModel('my_api/model')
+```
+
+不符合規則的名稱（Unicode、句點、數字開頭等）會拋出含操作建議的錯誤。使用 [`configs`](#程式碼配置) 可繞過所有命名限制：
+
+```ts
+const provider = envProvider({
+  configs: {
+    'my.special" provider': {
+      baseURL: 'https://api.example.com/v1',
+      apiKey: 'key',
+    },
+  },
+})
+```
+
 ## 自訂 Fetch
 
 傳入自訂 fetch 實作，套用到所有 provider：
