@@ -1,4 +1,4 @@
-> [English](./README.md)
+> [For AI agent (llms.txt)](./llms.txt) | [English](./README.md)
 
 # ai-sdk-provider-env
 

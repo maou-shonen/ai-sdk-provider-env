@@ -1,4 +1,4 @@
-> [中文](./README_zh.md)
+> [For AI agent (llms.txt)](./llms.txt) | [中文](./README_zh.md)
 
 # ai-sdk-provider-env
 
