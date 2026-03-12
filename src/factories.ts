@@ -32,15 +32,18 @@ export function isModuleNotFoundError(error: unknown, packageName: string): bool
     return false
 
   // Extract the quoted module name from "Cannot find module 'X'" or "Cannot find package 'X'"
-  const quoted = message.match(/Cannot find (?:module|package) '([^']+)'/)
+  // Handles both single and double quote styles across runtimes.
+  const quoted = message.match(/Cannot find (?:module|package) ['"]([^'"]+)['"]/)
   if (quoted)
     return quoted[1] === packageName || quoted[1].startsWith(`${packageName}/`)
 
   // Fallback for non-standard message formats (e.g. some Bun versions):
-  // check if the package name appears before any "Require stack:" section
+  // check if the package name appears before any "Require stack:" section,
+  // with boundary checking to avoid false positives (e.g. @ai-sdk/openai matching @ai-sdk/openai-compatible).
   const requireStackIndex = message.indexOf('\nRequire stack:')
   const relevantPart = requireStackIndex !== -1 ? message.slice(0, requireStackIndex) : message
-  return relevantPart.includes(packageName)
+  const boundaryPattern = new RegExp(`(?:^|[\\s'"/@])${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[\\s'"/@]|$)`)
+  return boundaryPattern.test(relevantPart)
 }
 
 /**

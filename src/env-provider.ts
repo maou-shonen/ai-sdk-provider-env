@@ -247,7 +247,18 @@ export function createEnvProvider(
       case 'gemini':
         return factories.createGemini(baseOpts)
       case 'openai-compatible':
-        return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
+        try {
+          return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
+        }
+        catch (error) {
+          if (isModuleNotFoundError(error, '@ai-sdk/openai-compatible')) {
+            throw new Error(
+              '[ai-sdk-provider-env] Could not load @ai-sdk/openai-compatible. '
+              + 'If using a bundler, provide factories: { openaiCompatible: createOpenAICompatible }',
+            )
+          }
+          throw error
+        }
       default:
         throw new Error(
           `[ai-sdk-provider-env] Unknown compatible mode "${compatible}".`

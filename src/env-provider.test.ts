@@ -185,6 +185,22 @@ describe('isModuleNotFoundError', () => {
     expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(false)
   })
 
+  it('should match double-quoted module names', () => {
+    const error = Object.assign(
+      new Error('Cannot find module "@ai-sdk/openai"'),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(true)
+  })
+
+  it('should NOT match a different package with same prefix in double quotes', () => {
+    const error = Object.assign(
+      new Error('Cannot find module "@ai-sdk/openai-compatible"'),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(false)
+  })
+
   it('should work with Bun compiled binary errors (no error.code)', () => {
     const error = new Error("Cannot find module '@ai-sdk/anthropic'")
     expect(isModuleNotFoundError(error, '@ai-sdk/anthropic')).toBe(true)

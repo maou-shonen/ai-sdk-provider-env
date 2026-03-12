@@ -17,7 +17,7 @@
 
 - 透過環境變數慣例（如 `OPENAI_BASE_URL`）自動解析提供商配置，無需手動初始化每個 provider
 - 內建多個常見提供商的 preset，只需設定 API Key 即可使用
-- 支援 OpenAI、Anthropic、Google Gemini、OpenAI Compatible 四種相容模式（OpenAI 模式在未安裝 SDK 時會自動 fallback 到 openai-compatible）
+- 支援 OpenAI、Anthropic、Google Gemini、OpenAI Compatible 四種相容模式（OpenAI 模式會在執行期可解析相依套件時，自動 fallback 到 openai-compatible）
 - 實作 `ProviderV3` 介面，可直接接入 `createProviderRegistry`
 - Provider 實例自動快取，避免重複初始化
 - 支援自訂 fetch、環境變數設定 headers、自訂分隔符號、程式碼指定配置
@@ -36,7 +36,7 @@ pnpm add @ai-sdk/anthropic         # Anthropic
 pnpm add @ai-sdk/google            # Google AI Studio (Gemini)
 ```
 
-`@ai-sdk/openai-compatible` 已作為相依套件包含在內，會在需要時自動使用。
+`@ai-sdk/openai-compatible` 已作為相依套件包含在內，會在需要時自動使用。若是單檔 / `bun build --compile` 產物，請顯式提供 `openaiCompatible` factory（參見 [Bundler 使用方式](./docs/bundler_zh.md)）。
 
 ## 快速開始
 
@@ -105,7 +105,7 @@ const review = await generateText({
 
 ## Provider Fallback
 
-當使用 `compatible: 'openai'` 且未安裝 `@ai-sdk/openai` 時，provider 會自動 fallback 到 `@ai-sdk/openai-compatible`。這讓基本的文字生成可以在不安裝官方 SDK 的情況下運作。
+當使用 `compatible: 'openai'` 且未安裝 `@ai-sdk/openai` 時，若執行期仍可解析 `@ai-sdk/openai-compatible`（例如有 `node_modules`），provider 會自動 fallback。若是單檔 / `bun build --compile` 產物，請顯式提供 `openaiCompatible` factory（參見 [Bundler 使用方式](./docs/bundler_zh.md)）。
 
 Anthropic 和 Google 沒有 fallback 機制。要使用它們的相容模式，必須安裝對應的 SDK。
 

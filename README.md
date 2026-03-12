@@ -17,7 +17,7 @@ Using multiple AI providers with Vercel AI SDK means importing each SDK, configu
 
 - Resolve provider config (base URL, API key, compatibility mode) from environment variables automatically
 - Built-in presets for popular providers, so you only need to set an API key
-- Supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible API (OpenAI mode falls back to openai-compatible if the SDK is not installed)
+- Supports OpenAI, Anthropic, Google Gemini, and any OpenAI-compatible API (OpenAI mode falls back to openai-compatible at runtime when `node_modules` are available)
 - Implements `ProviderV3`, plugs directly into `createProviderRegistry`
 - Provider instances are cached, no redundant initialization
 - Fully customizable: custom fetch, env-based headers, custom separator, code-based configs
@@ -36,7 +36,7 @@ pnpm add @ai-sdk/anthropic         # for Anthropic
 pnpm add @ai-sdk/google            # for Google AI Studio (Gemini)
 ```
 
-`@ai-sdk/openai-compatible` is included as a dependency and used automatically when needed.
+`@ai-sdk/openai-compatible` is included as a dependency and used automatically when needed. For single-file / `bun build --compile` builds, provide an explicit `openaiCompatible` factory (see [Bundler Usage](./docs/bundler.md)).
 
 ## Quick Start
 
@@ -105,7 +105,7 @@ When `PRESET` is set, `BASE_URL` and `COMPATIBLE` become optional and fall back 
 
 ## Provider Fallback
 
-When `compatible: 'openai'` is used and `@ai-sdk/openai` is not installed, the provider automatically falls back to `@ai-sdk/openai-compatible`. This allows basic text generation to work without installing the first-party SDK.
+When `compatible: 'openai'` is used and `@ai-sdk/openai` is not installed, the provider falls back to `@ai-sdk/openai-compatible` when that package is resolvable at runtime (e.g. with `node_modules` available). For single-file / `bun build --compile` builds, provide an explicit `openaiCompatible` factory (see [Bundler Usage](./docs/bundler.md)).
 
 Anthropic and Google have no fallback. Their SDKs must be installed to use their respective compatibility modes.
 
