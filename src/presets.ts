@@ -8,91 +8,103 @@ import type { PresetConfig } from './types'
  */
 export const builtinPresets: Record<string, PresetConfig> = {
   // OpenAI
-  openai: {
+  'openai': {
     baseURL: 'https://api.openai.com/v1',
     compatible: 'openai',
   },
 
   // Anthropic
-  anthropic: {
+  'anthropic': {
     baseURL: 'https://api.anthropic.com',
     compatible: 'anthropic',
   },
 
   // Google AI Studio (Gemini)
-  google: {
+  'google': {
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     compatible: 'gemini',
   },
 
   // DeepSeek
-  deepseek: {
+  'deepseek': {
     baseURL: 'https://api.deepseek.com',
     compatible: 'openai-compatible',
   },
 
   // Zhipu AI (GLM series)
-  zhipu: {
+  'zhipu': {
     baseURL: 'https://open.bigmodel.cn/api/paas/v4',
     compatible: 'openai-compatible',
   },
 
   // Groq
-  groq: {
+  'groq': {
     baseURL: 'https://api.groq.com/openai/v1',
     compatible: 'openai-compatible',
   },
 
   // Together AI
-  together: {
+  'together': {
     baseURL: 'https://api.together.xyz/v1',
     compatible: 'openai-compatible',
   },
 
   // Fireworks AI
-  fireworks: {
+  'fireworks': {
     baseURL: 'https://api.fireworks.ai/inference/v1',
     compatible: 'openai-compatible',
   },
 
   // Mistral AI
-  mistral: {
+  'mistral': {
     baseURL: 'https://api.mistral.ai/v1',
     compatible: 'openai-compatible',
   },
 
-  // Moonshot AI
-  moonshot: {
+  // Moonshot AI (international)
+  'moonshot': {
+    baseURL: 'https://api.moonshot.ai/v1',
+    compatible: 'openai-compatible',
+  },
+
+  // Moonshot AI (China mainland)
+  'moonshot-china': {
     baseURL: 'https://api.moonshot.cn/v1',
     compatible: 'openai-compatible',
   },
 
   // Perplexity
-  perplexity: {
+  'perplexity': {
     baseURL: 'https://api.perplexity.ai',
     compatible: 'openai-compatible',
   },
 
   // OpenRouter
-  openrouter: {
+  'openrouter': {
     baseURL: 'https://openrouter.ai/api/v1',
     compatible: 'openai-compatible',
   },
 
-  // SiliconFlow
-  siliconflow: {
+  // SiliconFlow (international)
+  'siliconflow': {
+    baseURL: 'https://api.siliconflow.com/v1',
+    compatible: 'openai-compatible',
+  },
+
+  // SiliconFlow (China mainland)
+  'siliconflow-china': {
     baseURL: 'https://api.siliconflow.cn/v1',
     compatible: 'openai-compatible',
   },
 
   // xAI (Grok series)
-  xai: {
+  'xai': {
     baseURL: 'https://api.x.ai/v1',
     compatible: 'openai-compatible',
   },
 
   // Zhipu AI International (Z.AI — global endpoint for GLM series)
-  zai: {
+  'zai': {
     baseURL: 'https://api.z.ai/api/paas/v4',
     compatible: 'openai-compatible',
   },
