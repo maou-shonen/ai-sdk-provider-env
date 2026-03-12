@@ -1,7 +1,7 @@
 {
   "name": "ai-sdk-provider-env",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "A dynamic, environment-variable-driven provider for Vercel AI SDK — resolves provider configurations from env var conventions at runtime",
   "author": "maou-shonen",
   "license": "MIT",
