@@ -47,36 +47,21 @@
     "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
-    "@ai-sdk/anthropic": ">=3.0.0",
-    "@ai-sdk/google": ">=3.0.0",
-    "@ai-sdk/openai": ">=3.0.0",
-    "@ai-sdk/openai-compatible": ">=2.0.0",
     "@ai-sdk/provider": ">=3.0.0",
     "ai": ">=4.0.0"
   },
-  "peerDependenciesMeta": {
-    "@ai-sdk/anthropic": {
-      "optional": true
-    },
-    "@ai-sdk/google": {
-      "optional": true
-    },
-    "@ai-sdk/openai": {
-      "optional": true
-    },
-    "@ai-sdk/openai-compatible": {
-      "optional": true
-    }
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.0 || ^3.0.0-beta.0"
   },
   "devDependencies": {
-    "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/google": "^3.0.0",
-    "@ai-sdk/openai": "^3.0.0",
-    "@ai-sdk/openai-compatible": "^2.0.0",
-    "@ai-sdk/provider": "^3.0.0",
+    "@ai-sdk/anthropic": "^3.0.0 || ^4.0.0-beta.0",
+    "@ai-sdk/google": "^3.0.0 || ^4.0.0-beta.0",
+    "@ai-sdk/openai": "^3.0.0 || ^4.0.0-beta.0",
+    "@ai-sdk/openai-compatible": "^2.0.0 || ^3.0.0-beta.0",
+    "@ai-sdk/provider": "^3.0.0 || ^4.0.0-beta.0",
     "@antfu/eslint-config": "^7.6.1",
     "@types/bun": "latest",
-    "ai": "^6.0.0",
+    "ai": "^6.0.0 || ^7.0.0-beta.0",
     "eslint": "^10.0.0",
     "tsdown": "^0.21.0-beta.2",
     "typescript": "^5.7.0"

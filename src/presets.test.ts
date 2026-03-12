@@ -16,6 +16,16 @@ function createMockProvider(providerName: string) {
       doGenerate: mock(),
       doStream: mock(),
     })),
+    embeddingModel: mock((modelId: string) => ({
+      specificationVersion: 'v3' as const,
+      provider: providerName,
+      modelId,
+    })),
+    imageModel: mock((modelId: string) => ({
+      specificationVersion: 'v3' as const,
+      provider: providerName,
+      modelId,
+    })),
   }
 }
 

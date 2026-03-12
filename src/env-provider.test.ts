@@ -1,8 +1,10 @@
 import type { ProviderV3 } from '@ai-sdk/provider'
 import type { ProviderFactories } from './env-provider'
+import type { ProviderV3Compatible } from './types'
 import { NoSuchModelError } from '@ai-sdk/provider'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { createEnvProvider, envProvider } from './env-provider'
+import { isModuleNotFoundError } from './factories'
 
 // --- Mock helpers ---
 
@@ -48,6 +50,49 @@ function createMockProvider(providerName: string): ProviderV3 {
       modelId,
     })),
   } as unknown as ProviderV3
+}
+
+/**
+ * Create a V4-style mock provider (specificationVersion: 'v4', no textEmbeddingModel).
+ * Simulates what @ai-sdk/openai@4.x returns.
+ */
+function createMockV4Provider(providerName: string): ProviderV3Compatible {
+  return {
+    specificationVersion: 'v4' as const,
+    languageModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+      supportedUrls: {},
+      doGenerate: mock(),
+      doStream: mock(),
+    })),
+    embeddingModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+    })),
+    imageModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+    })),
+    transcriptionModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+    })),
+    speechModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+    })),
+    rerankingModel: mock((modelId: string) => ({
+      specificationVersion: 'v4' as const,
+      provider: providerName,
+      modelId,
+    })),
+  }
 }
 
 /**
@@ -99,6 +144,62 @@ function clearTestEnv() {
 }
 
 // --- Tests ---
+
+describe('isModuleNotFoundError', () => {
+  it('should match when quoted module name matches the package', () => {
+    const error = Object.assign(
+      new Error("Cannot find module '@ai-sdk/openai'"),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(true)
+  })
+
+  it('should match sub-path imports of the target package', () => {
+    const error = Object.assign(
+      new Error("Cannot find module '@ai-sdk/openai/internal'"),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(true)
+  })
+
+  it('should NOT match when target package only appears in require stack', () => {
+    // Simulate: a sub-dependency of @ai-sdk/openai fails to load,
+    // but @ai-sdk/openai appears in the require stack
+    const error = Object.assign(
+      new Error(
+        "Cannot find module 'some-missing-dep'\n"
+        + 'Require stack:\n'
+        + '- /node_modules/@ai-sdk/openai/dist/index.js',
+      ),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(false)
+  })
+
+  it('should NOT match a different package with same prefix', () => {
+    const error = Object.assign(
+      new Error("Cannot find module '@ai-sdk/openai-compatible'"),
+      { code: 'MODULE_NOT_FOUND' },
+    )
+    // Should NOT match @ai-sdk/openai (different package)
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(false)
+  })
+
+  it('should work with Bun compiled binary errors (no error.code)', () => {
+    const error = new Error("Cannot find module '@ai-sdk/anthropic'")
+    expect(isModuleNotFoundError(error, '@ai-sdk/anthropic')).toBe(true)
+  })
+
+  it('should return false for non-module-not-found errors', () => {
+    const error = new Error('Unexpected error')
+    expect(isModuleNotFoundError(error, '@ai-sdk/openai')).toBe(false)
+  })
+
+  it('should return false for non-object errors', () => {
+    expect(isModuleNotFoundError('string error', '@ai-sdk/openai')).toBe(false)
+    expect(isModuleNotFoundError(null, '@ai-sdk/openai')).toBe(false)
+  })
+})
 
 describe('envProvider', () => {
   let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
@@ -908,6 +1009,186 @@ describe('envProvider', () => {
     })
   })
 
+  describe('openai fallback to openai-compatible', () => {
+    it('should fall back to openai-compatible when createOpenAI throws MODULE_NOT_FOUND', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/openai'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f, mockCreateOpenAICompatible: mockCompat } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(f)
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCompat).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should fall back to openai-compatible when createOpenAI throws ERR_MODULE_NOT_FOUND', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/openai'"),
+        { code: 'ERR_MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f, mockCreateOpenAICompatible: mockCompat } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(f)
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCompat).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should NOT fall back on non-module-not-found errors', () => {
+      const { factories: f } = createMockFactories()
+      f.createOpenAI = () => { throw new Error('Unexpected initialization error') }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(f)
+
+      expect(() => provider.languageModel('myapi/gpt-4o'))
+        .toThrow('Unexpected initialization error')
+    })
+
+    it('should NOT fall back on MODULE_NOT_FOUND for a different package', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module 'some-other-dep'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(f)
+
+      expect(() => provider.languageModel('myapi/gpt-4o')).toThrow()
+    })
+
+    it('should use first-party SDK when available (no fallback)', () => {
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalled()
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('should NOT fall back for anthropic (no openai-compatible support)', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/anthropic'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f } = createMockFactories()
+      f.createAnthropic = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.anthropic.com')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'anthropic')
+
+      const provider = createEnvProvider(f)
+
+      expect(() => provider.languageModel('myapi/claude'))
+        .toThrow()
+    })
+
+    it('should NOT fall back for gemini (no openai-compatible support)', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/google'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f } = createMockFactories()
+      f.createGemini = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'gemini')
+
+      const provider = createEnvProvider(f)
+
+      expect(() => provider.languageModel('myapi/gemini-2.0-flash'))
+        .toThrow()
+    })
+
+    it('should propagate non-module-not-found errors from openai-compatible fallback', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/openai'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+      // The fallback itself throws a non-module-not-found error (e.g. config issue)
+      f.createOpenAICompatible = () => { throw new Error('Invalid provider configuration') }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(f)
+
+      // Should propagate the original error from createOpenAICompatible, not a generic message
+      expect(() => provider.languageModel('myapi/gpt-4o'))
+        .toThrow('Invalid provider configuration')
+    })
+
+    it('should pass merged headers and fetch through fallback', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/openai'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f, mockCreateOpenAICompatible: mockCompat } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const customFetch = mock() as unknown as typeof globalThis.fetch
+      const provider = createEnvProvider(f, {
+        defaults: { fetch: customFetch, headers: { 'X-App': 'test' } },
+      })
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCompat).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+        headers: { 'X-App': 'test' },
+        fetch: customFetch,
+      })
+    })
+  })
+
   describe('caching', () => {
     it('should only create one provider per config set', () => {
       setEnv('CACHED_BASE_URL', 'https://api.example.com/v1')
@@ -1116,27 +1397,59 @@ describe('envProvider with factories option', () => {
     })
   })
 
-  it('should throw when a missing factory is actually needed (lazy-strict)', () => {
+  it('should fall back to openai-compatible when openai factory is not provided', () => {
     setEnv('OPENAI_API_KEY', 'sk-test')
 
-    // Provide anthropic but not openai
+    // Provide anthropic but not openai — should fall back to openai-compatible
     const provider = envProvider({
       factories: {
         anthropic: mock(() => createMockProvider('anthropic')),
       },
     })
 
-    expect(() => provider.languageModel('openai/gpt-4o'))
-      .toThrow('No factory provided for "openai"')
+    // Should NOT throw — falls back to built-in openai-compatible
+    expect(() => provider.languageModel('openai/gpt-4o')).not.toThrow()
+  })
 
-    // Verify error message includes actionable import instructions
-    try {
-      provider.languageModel('openai/gpt-4o')
-    }
-    catch (e) {
-      expect((e as Error).message).toContain('createOpenAI')
-      expect((e as Error).message).toContain('@ai-sdk/openai')
-    }
+  it('should still throw when anthropic factory is missing (no fallback)', () => {
+    setEnv('ANTHROPIC_API_KEY', 'ant-test')
+
+    const provider = envProvider({
+      factories: {
+        openai: mock(() => createMockProvider('openai')),
+      },
+    })
+
+    expect(() => provider.languageModel('anthropic/claude-sonnet-4-20250514'))
+      .toThrow('No factory provided for "anthropic"')
+  })
+
+  it('should still throw when gemini factory is missing (no fallback)', () => {
+    setEnv('GOOGLE_API_KEY', 'google-test')
+
+    const provider = envProvider({
+      factories: {
+        openai: mock(() => createMockProvider('openai')),
+      },
+    })
+
+    expect(() => provider.languageModel('google/gemini-2.0-flash'))
+      .toThrow('No factory provided for "gemini"')
+  })
+
+  it('should use openai-compatible without user factory for openaiCompatible', () => {
+    setEnv('MYAPI_BASE_URL', 'https://api.custom.com/v1')
+    setEnv('MYAPI_API_KEY', 'custom-key')
+
+    // Provide only openai — openaiCompatible should fall back to built-in
+    const provider = envProvider({
+      factories: {
+        openai: mock(() => createMockProvider('openai')),
+      },
+    })
+
+    // Should NOT throw — built-in openai-compatible is used
+    expect(() => provider.languageModel('myapi/some-model')).not.toThrow()
   })
 
   it('should not throw for missing factory that is never used', () => {
@@ -1234,5 +1547,373 @@ describe('envProvider with factories option', () => {
 
     // Factory should only be called once (cached)
     expect(mockFactory).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('provider v4 compatibility', () => {
+  afterEach(() => {
+    clearTestEnv()
+  })
+
+  describe('v4 internal factories', () => {
+    it('should work with V4 mock factories via createEnvProvider', () => {
+      const mockCreateOpenAI = mock((opts: any) =>
+        createMockV4Provider(`openai-v4[${opts.baseURL}]`),
+      )
+      const mockCreateAnthropic = mock((opts: any) =>
+        createMockV4Provider(`anthropic-v4[${opts.baseURL}]`),
+      )
+      const mockCreateGemini = mock((opts: any) =>
+        createMockV4Provider(`gemini-v4[${opts.baseURL}]`),
+      )
+      const mockCreateOpenAICompatible = mock((opts: any) =>
+        createMockV4Provider(`compat-v4[${opts.name}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: mockCreateOpenAI,
+        createAnthropic: mockCreateAnthropic,
+        createGemini: mockCreateGemini,
+        createOpenAICompatible: mockCreateOpenAICompatible,
+      }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.example.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+
+      const provider = createEnvProvider(factories)
+      const model = provider.languageModel('myapi/some-model')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.example.com/v1',
+        apiKey: 'test-key',
+      })
+      // Model returned from underlying V4 provider should be passed through
+      expect(model).toBeDefined()
+      expect((model as any).modelId).toBe('some-model')
+    })
+
+    it('should work with V4 openai factory', () => {
+      const mockCreateOpenAI = mock((opts: any) =>
+        createMockV4Provider(`openai-v4[${opts.baseURL}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: mockCreateOpenAI,
+        createAnthropic: mock(() => createMockV4Provider('anthropic')),
+        createGemini: mock(() => createMockV4Provider('gemini')),
+        createOpenAICompatible: mock(() => createMockV4Provider('compat')),
+      }
+
+      setEnv('MYAPI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCreateOpenAI).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should work with V4 anthropic factory', () => {
+      const mockCreateAnthropic = mock((opts: any) =>
+        createMockV4Provider(`anthropic-v4[${opts.baseURL}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: mock(() => createMockV4Provider('openai')),
+        createAnthropic: mockCreateAnthropic,
+        createGemini: mock(() => createMockV4Provider('gemini')),
+        createOpenAICompatible: mock(() => createMockV4Provider('compat')),
+      }
+
+      setEnv('CLAUDE_BASE_URL', 'https://api.anthropic.com')
+      setEnv('CLAUDE_API_KEY', 'test-key')
+      setEnv('CLAUDE_COMPATIBLE', 'anthropic')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('claude/claude-sonnet-4-20250514')
+
+      expect(mockCreateAnthropic).toHaveBeenCalledWith({
+        baseURL: 'https://api.anthropic.com',
+        apiKey: 'test-key',
+      })
+    })
+
+    it('should work with V4 gemini factory', () => {
+      const mockCreateGemini = mock((opts: any) =>
+        createMockV4Provider(`gemini-v4[${opts.baseURL}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: mock(() => createMockV4Provider('openai')),
+        createAnthropic: mock(() => createMockV4Provider('anthropic')),
+        createGemini: mockCreateGemini,
+        createOpenAICompatible: mock(() => createMockV4Provider('compat')),
+      }
+
+      setEnv('MYAPI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+      setEnv('MYAPI_API_KEY', 'test-key')
+      setEnv('MYAPI_COMPATIBLE', 'gemini')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('myapi/gemini-2.0-flash')
+
+      expect(mockCreateGemini).toHaveBeenCalledWith({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: 'test-key',
+      })
+    })
+  })
+
+  describe('v4 user-provided factories via envProvider()', () => {
+    it('should accept a V4 openai factory', () => {
+      setEnv('OPENAI_API_KEY', 'sk-test')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-openai-v4[${opts.baseURL}]`),
+      )
+
+      const provider = envProvider({
+        factories: { openai: mockFactory },
+      })
+      const model = provider.languageModel('openai/gpt-4o')
+
+      expect(mockFactory).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'sk-test',
+      })
+      expect(model).toBeDefined()
+    })
+
+    it('should accept a V4 anthropic factory', () => {
+      setEnv('ANTHROPIC_API_KEY', 'ant-test')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-anthropic-v4[${opts.baseURL}]`),
+      )
+
+      const provider = envProvider({
+        factories: { anthropic: mockFactory },
+      })
+      provider.languageModel('anthropic/claude-sonnet-4-20250514')
+
+      expect(mockFactory).toHaveBeenCalledWith({
+        baseURL: 'https://api.anthropic.com',
+        apiKey: 'ant-test',
+      })
+    })
+
+    it('should accept a V4 gemini factory', () => {
+      setEnv('GOOGLE_API_KEY', 'google-test')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-gemini-v4[${opts.baseURL}]`),
+      )
+
+      const provider = envProvider({
+        factories: { gemini: mockFactory },
+      })
+      provider.languageModel('google/gemini-2.0-flash')
+
+      expect(mockFactory).toHaveBeenCalledWith({
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: 'google-test',
+      })
+    })
+
+    it('should accept a V4 openaiCompatible factory', () => {
+      setEnv('MYAPI_BASE_URL', 'https://api.custom.com/v1')
+      setEnv('MYAPI_API_KEY', 'custom-key')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-compat-v4[${opts.name}]`),
+      )
+
+      const provider = envProvider({
+        factories: { openaiCompatible: mockFactory },
+      })
+      provider.languageModel('myapi/some-model')
+
+      expect(mockFactory).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.custom.com/v1',
+        apiKey: 'custom-key',
+      })
+    })
+  })
+
+  describe('mixed v3 and v4 factories', () => {
+    it('should work when openai is V4 and anthropic is V3', () => {
+      const v4OpenAI = mock((opts: any) =>
+        createMockV4Provider(`openai-v4[${opts.baseURL}]`),
+      )
+      const v3Anthropic = mock((opts: any) =>
+        createMockProvider(`anthropic-v3[${opts.baseURL}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: v4OpenAI,
+        createAnthropic: v3Anthropic,
+        createGemini: mock(() => createMockProvider('gemini')),
+        createOpenAICompatible: mock(() => createMockProvider('compat')),
+      }
+
+      setEnv('OAI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('OAI_API_KEY', 'oai-key')
+      setEnv('OAI_COMPATIBLE', 'openai')
+      setEnv('ANT_BASE_URL', 'https://api.anthropic.com')
+      setEnv('ANT_API_KEY', 'ant-key')
+      setEnv('ANT_COMPATIBLE', 'anthropic')
+
+      const provider = createEnvProvider(factories)
+
+      // V4 openai
+      const oaiModel = provider.languageModel('oai/gpt-4o')
+      expect(oaiModel).toBeDefined()
+      expect((oaiModel as any).specificationVersion).toBe('v4')
+
+      // V3 anthropic
+      const antModel = provider.languageModel('ant/claude-sonnet-4-20250514')
+      expect(antModel).toBeDefined()
+      expect((antModel as any).specificationVersion).toBe('v3')
+    })
+
+    it('should cache V4 providers correctly', () => {
+      const v4Factory = mock((opts: any) =>
+        createMockV4Provider(`v4[${opts.baseURL}]`),
+      )
+
+      const factories: ProviderFactories = {
+        createOpenAI: v4Factory,
+        createAnthropic: mock(() => createMockV4Provider('anthropic')),
+        createGemini: mock(() => createMockV4Provider('gemini')),
+        createOpenAICompatible: mock(() => createMockV4Provider('compat')),
+      }
+
+      setEnv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+      setEnv('OPENAI_API_KEY', 'sk-key')
+      setEnv('OPENAI_COMPATIBLE', 'openai')
+
+      const provider = createEnvProvider(factories)
+      provider.languageModel('openai/gpt-4o')
+      provider.languageModel('openai/gpt-4o-mini')
+
+      // Factory called only once — V4 provider is cached
+      expect(v4Factory).toHaveBeenCalledTimes(1)
+    })
+
+    it('should proxy all model types through V4 provider', () => {
+      const v4Provider = createMockV4Provider('v4-test')
+      const factories: ProviderFactories = {
+        createOpenAI: mock(() => v4Provider),
+        createAnthropic: mock(() => createMockV4Provider('anthropic')),
+        createGemini: mock(() => createMockV4Provider('gemini')),
+        createOpenAICompatible: mock(() => v4Provider),
+      }
+
+      setEnv('TEST_BASE_URL', 'https://api.example.com/v1')
+      setEnv('TEST_API_KEY', 'key')
+
+      const provider = createEnvProvider(factories)
+
+      provider.languageModel('test/model-a')
+      expect(v4Provider.languageModel).toHaveBeenCalledWith('model-a')
+
+      provider.embeddingModel('test/embed-1')
+      expect(v4Provider.embeddingModel).toHaveBeenCalledWith('embed-1')
+
+      provider.imageModel('test/dall-e-3')
+      expect(v4Provider.imageModel).toHaveBeenCalledWith('dall-e-3')
+    })
+
+    it('should pass defaults.fetch and headers through to V4 factory', () => {
+      setEnv('OPENAI_API_KEY', 'sk-test')
+      setEnv('OPENAI_HEADERS', '{"X-Custom":"from-env"}')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-v4[${opts.baseURL}]`),
+      )
+
+      const customFetch = mock() as unknown as typeof globalThis.fetch
+      const provider = envProvider({
+        factories: { openai: mockFactory },
+        defaults: { fetch: customFetch, headers: { 'X-Default': 'default-val' } },
+      })
+      provider.languageModel('openai/gpt-4o')
+
+      expect(mockFactory).toHaveBeenCalledWith({
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'sk-test',
+        headers: { 'X-Default': 'default-val', 'X-Custom': 'from-env' },
+        fetch: customFetch,
+      })
+    })
+  })
+
+  describe('textEmbeddingModel fallback for V4 providers', () => {
+    it('should fall back to embeddingModel when V4 provider has no textEmbeddingModel', () => {
+      // V4 providers don't have textEmbeddingModel (removed in V4 spec)
+      const v4Provider = createMockV4Provider('v4-test')
+      expect(v4Provider.textEmbeddingModel).toBeUndefined()
+
+      const factories: ProviderFactories = {
+        createOpenAI: mock(() => v4Provider),
+        createAnthropic: mock(() => createMockV4Provider('anthropic')),
+        createGemini: mock(() => createMockV4Provider('gemini')),
+        createOpenAICompatible: mock(() => v4Provider),
+      }
+
+      setEnv('TEST_BASE_URL', 'https://api.example.com/v1')
+      setEnv('TEST_API_KEY', 'key')
+
+      const provider = createEnvProvider(factories)
+
+      // Should NOT throw — falls back to embeddingModel
+      const model = provider.textEmbeddingModel!('test/text-embedding-3-small')
+      expect(model).toBeDefined()
+      expect(v4Provider.embeddingModel).toHaveBeenCalledWith('text-embedding-3-small')
+    })
+
+    it('should use textEmbeddingModel when V3 provider has it', () => {
+      const v3Provider = createMockProvider('v3-test') as any
+
+      const factories: ProviderFactories = {
+        createOpenAI: mock(() => v3Provider),
+        createAnthropic: mock(() => createMockProvider('anthropic')),
+        createGemini: mock(() => createMockProvider('gemini')),
+        createOpenAICompatible: mock(() => v3Provider),
+      }
+
+      setEnv('TEST_BASE_URL', 'https://api.example.com/v1')
+      setEnv('TEST_API_KEY', 'key')
+
+      const provider = createEnvProvider(factories)
+      provider.textEmbeddingModel!('test/text-embedding-3-small')
+
+      // Should call textEmbeddingModel directly on V3 provider
+      expect(v3Provider.textEmbeddingModel).toHaveBeenCalledWith('text-embedding-3-small')
+      // Should NOT call embeddingModel
+      expect(v3Provider.embeddingModel).not.toHaveBeenCalled()
+    })
+
+    it('should fall back to embeddingModel via envProvider with V4 user factory', () => {
+      setEnv('OPENAI_API_KEY', 'sk-test')
+
+      const mockFactory = mock((opts: any) =>
+        createMockV4Provider(`user-v4[${opts.baseURL}]`),
+      )
+
+      const provider = envProvider({
+        factories: { openai: mockFactory },
+      })
+
+      // Should NOT throw even though V4 provider lacks textEmbeddingModel
+      const model = provider.textEmbeddingModel!('openai/text-embedding-3-small')
+      expect(model).toBeDefined()
+    })
   })
 })

@@ -116,7 +116,7 @@ describe('bundler e2e', () => {
     await run.exited
 
     expect(stdout).toContain('E2E_EXPECTED_FAIL:')
-    expect(stdout).toContain('requires @ai-sdk/openai')
+    expect(stdout).toContain('Could not load @ai-sdk/openai')
     expect(stdout).not.toContain('UNEXPECTED_SUCCESS')
   })
 })

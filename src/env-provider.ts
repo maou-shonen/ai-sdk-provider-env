@@ -1,22 +1,37 @@
 import type { ProviderV3 } from '@ai-sdk/provider'
 import type { ProviderOpts } from './factories'
-import type { EnvProviderFactories, EnvProviderOptions } from './types'
+import type { EnvProviderFactories, EnvProviderOptions, ProviderV3Compatible } from './types'
 import process from 'node:process'
 import { NoSuchModelError } from '@ai-sdk/provider'
-import { createAnthropicProvider, createGeminiProvider, createOpenAICompatibleProvider, createOpenAIProvider } from './factories'
+import { createAnthropicProvider, createGeminiProvider, createOpenAICompatibleProvider, createOpenAIProvider, isModuleNotFoundError } from './factories'
 import { builtinPresets } from './presets'
+
+/**
+ * Thrown when a provider is not available (factory not provided by user).
+ * Used internally to trigger fallback to OpenAI-compatible provider.
+ */
+class ProviderNotAvailableError extends Error {
+  constructor(provider: string) {
+    super(`Provider "${provider}" is not available`)
+    this.name = 'ProviderNotAvailableError'
+  }
+}
 
 /**
  * Interface for provider factory functions, used for dependency injection.
  *
  * In production, `defaultFactories` delegates to the real SDK implementations.
  * In tests, fake factories can be injected to avoid module mocking.
+ *
+ * Return types use `ProviderV3Compatible` so that both `ProviderV3`
+ * (from `@ai-sdk/provider@3.x`) and `ProviderV4` (`@ai-sdk/provider@4.x`)
+ * are accepted.
  */
 export interface ProviderFactories {
-  createOpenAI: (opts: ProviderOpts) => ProviderV3
-  createAnthropic: (opts: ProviderOpts) => ProviderV3
-  createGemini: (opts: ProviderOpts) => ProviderV3
-  createOpenAICompatible: (opts: ProviderOpts & { name: string }) => ProviderV3
+  createOpenAI: (opts: ProviderOpts) => ProviderV3Compatible
+  createAnthropic: (opts: ProviderOpts) => ProviderV3Compatible
+  createGemini: (opts: ProviderOpts) => ProviderV3Compatible
+  createOpenAICompatible: (opts: ProviderOpts & { name: string }) => ProviderV3Compatible
 }
 
 /**
@@ -54,6 +69,8 @@ export function createEnvProvider(
   const defaultHeaders = options.defaults?.headers
 
   // Cache created providers to avoid redundant initialization
+  // Stored as ProviderV3 via safe cast from ProviderV3Compatible,
+  // since V3 and V4 provider interfaces are structurally identical.
   const cache = new Map<string, ProviderV3>()
 
   /**
@@ -182,7 +199,7 @@ export function createEnvProvider(
   /**
    * Create the underlying provider based on the compatibility mode.
    */
-  function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3 {
+  function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3Compatible {
     const { baseURL, apiKey, compatible, headers } = config
 
     // Merge headers: defaults.headers as base, config-set headers override matching keys
@@ -199,7 +216,32 @@ export function createEnvProvider(
 
     switch (compatible) {
       case 'openai':
-        return factories.createOpenAI(baseOpts)
+        try {
+          return factories.createOpenAI(baseOpts)
+        }
+        catch (error) {
+          // Fallback to OpenAI-compatible when:
+          // - @ai-sdk/openai is not installed (module not found)
+          // - User-provided factories don't include openai (ProviderNotAvailableError)
+          if (isModuleNotFoundError(error, '@ai-sdk/openai') || error instanceof ProviderNotAvailableError) {
+            try {
+              return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
+            }
+            catch (fallbackError) {
+              // Only swallow module-not-found errors from the fallback itself
+              if (isModuleNotFoundError(fallbackError, '@ai-sdk/openai-compatible') || fallbackError instanceof ProviderNotAvailableError) {
+                throw new Error(
+                  '[ai-sdk-provider-env] Could not load @ai-sdk/openai or its openai-compatible fallback. '
+                  + 'Install @ai-sdk/openai for full OpenAI features, or if using a bundler, '
+                  + 'provide factories: { openai: createOpenAI }',
+                )
+              }
+              // Non-module-not-found errors from openai-compatible (e.g. config issues) should propagate
+              throw fallbackError
+            }
+          }
+          throw error
+        }
       case 'anthropic':
         return factories.createAnthropic(baseOpts)
       case 'gemini':
@@ -217,6 +259,10 @@ export function createEnvProvider(
 
   /**
    * Get or create a cached provider for the given config set.
+   *
+   * Returns `ProviderV3` via a safe cast from `ProviderV3Compatible`.
+   * This is safe because `ProviderV3` and `ProviderV4` have identical
+   * method signatures — only `specificationVersion` and model type brands differ.
    */
   function getProvider(configSet: string): ProviderV3 {
     const key = configSet.toUpperCase()
@@ -225,7 +271,10 @@ export function createEnvProvider(
       return cached
 
     const config = resolveConfig(configSet)
-    const provider = createUnderlying(configSet, config)
+    // Safe cast: V3 and V4 providers are structurally identical.
+    // The underlying provider may be ProviderV3 or ProviderV4 depending
+    // on which SDK version the user has installed.
+    const provider = createUnderlying(configSet, config) as unknown as ProviderV3
     cache.set(key, provider)
     return provider
   }
@@ -268,10 +317,16 @@ export function createEnvProvider(
     textEmbeddingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
       const provider = getProvider(configSet)
-      if (!provider.textEmbeddingModel) {
-        throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' })
+      // Prefer textEmbeddingModel if the underlying provider has it (V3).
+      if (provider.textEmbeddingModel) {
+        return provider.textEmbeddingModel(model)
       }
-      return provider.textEmbeddingModel(model)
+      // V4 providers removed textEmbeddingModel — fall back to embeddingModel
+      // which exists in both V3 and V4 interfaces.
+      if (provider.embeddingModel) {
+        return provider.embeddingModel(model)
+      }
+      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' })
     },
 
     transcriptionModel(modelId: string) {
@@ -320,10 +375,12 @@ function buildUserFactories(userFactories: EnvProviderFactories): ProviderFactor
   }
 
   return {
-    createOpenAI: opts =>
-      userFactories.openai
-        ? userFactories.openai(opts)
-        : missingFactory('openai', 'createOpenAI', '@ai-sdk/openai'),
+    createOpenAI: (opts) => {
+      if (userFactories.openai)
+        return userFactories.openai(opts)
+      // Signal fallback — createUnderlying will catch this and use openai-compatible
+      throw new ProviderNotAvailableError('openai')
+    },
     createAnthropic: opts =>
       userFactories.anthropic
         ? userFactories.anthropic(opts)
@@ -335,7 +392,7 @@ function buildUserFactories(userFactories: EnvProviderFactories): ProviderFactor
     createOpenAICompatible: opts =>
       userFactories.openaiCompatible
         ? userFactories.openaiCompatible(opts)
-        : missingFactory('openaiCompatible', 'createOpenAICompatible', '@ai-sdk/openai-compatible'),
+        : createOpenAICompatibleProvider(opts),
   }
 }
 
