@@ -34,14 +34,14 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // default: 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // inherits from preset, or 'openai-compatible'
   headers?: Record<string, string>
 }
 ```
 
 ### Model ID format
 
-```
+```text
 {configSet}/{modelId}
 ```
 

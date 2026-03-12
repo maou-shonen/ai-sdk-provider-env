@@ -36,17 +36,17 @@ const provider = envProvider({
   configs: {
     openai: {
       baseURL: 'https://api.openai.com/v1',
-      apiKey: process.env.OPENAI_KEY!,
+      apiKey: process.env.OPENAI_API_KEY!,
       compatible: 'openai',
     },
     claude: {
       baseURL: 'https://api.anthropic.com',
-      apiKey: process.env.ANTHROPIC_KEY!,
+      apiKey: process.env.ANTHROPIC_API_KEY!,
       compatible: 'anthropic',
     },
     deepseek: {
       preset: 'deepseek',
-      apiKey: process.env.DEEPSEEK_KEY!,
+      apiKey: process.env.DEEPSEEK_API_KEY!,
     },
   },
 })

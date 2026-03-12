@@ -34,14 +34,14 @@ interface ConfigSetEntry {
   apiKey: string
   preset?: string
   baseURL?: string
-  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // 預設 'openai-compatible'
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // 繼承 preset 值，或 'openai-compatible'
   headers?: Record<string, string>
 }
 ```
 
 ### 模型 ID 格式
 
-```
+```text
 {設定集}/{模型ID}
 ```
 
