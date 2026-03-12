@@ -29,6 +29,7 @@ src/
 
 - Tests co-located: `foo.ts` → `foo.test.ts`
 - All public exports go through `index.ts`
+- `llms.txt` — LLM-facing quick reference (published with npm). Covers: install, core concept, env vars, presets, options, compatibility modes, common patterns, exports. Keep in sync when public API or presets change.
 
 ## Architecture
 

@@ -1,0 +1,180 @@
+# ai-sdk-provider-env
+
+> Environment-variable-driven provider for Vercel AI SDK. Configure AI providers via env vars — switch providers/models without code changes.
+
+## Install
+
+npm/pnpm/bun add ai-sdk-provider-env
+Peer deps: @ai-sdk/provider (>=3), ai (>=4)
+Optional peer deps (install per compatibility mode used):
+  @ai-sdk/openai, @ai-sdk/anthropic, @ai-sdk/google, @ai-sdk/openai-compatible
+
+## Quick Start
+
+```ts
+import { envProvider } from 'ai-sdk-provider-env'
+import { generateText } from 'ai'
+
+// Set OPENAI_API_KEY=sk-xxx in env
+const provider = envProvider()
+const { text } = await generateText({
+  model: provider.languageModel('openai/gpt-4o'),
+  prompt: 'Hello!',
+})
+```
+
+## Core Concept
+
+Model ID format: `{configSet}/{modelId}` — first `/` splits config set from model.
+Config set maps to UPPERCASED env var prefix. Hyphens normalize to underscores:
+  `my-api/model` → reads `MY_API_*` env vars
+
+## Env Vars
+
+| Variable              | Required              | Description                                                  |
+| --------------------- | --------------------- | ------------------------------------------------------------ |
+| `{PREFIX}_API_KEY`    | Yes                   | API key                                                      |
+| `{PREFIX}_BASE_URL`   | Unless preset matches | API base URL                                                 |
+| `{PREFIX}_PRESET`     | No                    | Built-in preset name                                         |
+| `{PREFIX}_COMPATIBLE` | No                    | `openai`·`anthropic`·`gemini`·`openai-compatible` (default)  |
+| `{PREFIX}_HEADERS`    | No                    | Custom HTTP headers (JSON string)                            |
+
+## Built-in Presets
+
+When a config set name matches a preset, it auto-applies — only `_API_KEY` is needed.
+Available presets: openai, anthropic, google, deepseek, groq, together, fireworks, mistral, moonshot, moonshot-china, perplexity, openrouter, siliconflow, siliconflow-china, xai, zai, zhipu.
+
+Each preset provides a default `baseURL` and `compatible` mode.
+For full details (URLs, compatible modes), inspect the `builtinPresets` export:
+
+```ts
+import { builtinPresets } from 'ai-sdk-provider-env'
+console.log(builtinPresets)
+```
+
+Disable auto-detect: `envProvider({ presetAutoDetect: false })`
+
+## envProvider(options?) → ProviderV3
+
+```ts
+interface EnvProviderOptions {
+  separator?: string               // default '_', env var prefix separator
+  configs?: Record<string, ConfigSetEntry>  // explicit configs (highest priority)
+  defaults?: {
+    fetch?: typeof globalThis.fetch  // custom fetch for all providers
+    headers?: Record<string, string> // default headers (overridden by per-config-set)
+  }
+  presetAutoDetect?: boolean        // default true
+  factories?: EnvProviderFactories  // for bundler-safe usage
+}
+
+interface ConfigSetEntry {
+  apiKey: string
+  preset?: string                   // built-in preset name
+  baseURL?: string                  // optional when preset is set
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
+  headers?: Record<string, string>
+}
+```
+
+Returned provider supports: `languageModel()`, `embeddingModel()`, `imageModel()`,
+`textEmbeddingModel()`, `transcriptionModel()`, `speechModel()`, `rerankingModel()`
+
+## Compatibility Modes
+
+| Value               | SDK Package                | Fallback                            |
+| ------------------- | -------------------------- | ----------------------------------- |
+| `openai`            | `@ai-sdk/openai`          | `@ai-sdk/openai-compatible` if n/a  |
+| `anthropic`         | `@ai-sdk/anthropic`       | None (must install)                 |
+| `gemini`            | `@ai-sdk/google`          | None (must install)                 |
+| `openai-compatible` | `@ai-sdk/openai-compatible`| — (default mode)                   |
+
+## Common Patterns
+
+### Preset provider (env vars only)
+```bash
+OPENAI_API_KEY=sk-xxx
+```
+```ts
+provider.languageModel('openai/gpt-4o')
+```
+
+### Custom endpoint
+```bash
+MYAPI_BASE_URL=https://api.example.com/v1
+MYAPI_API_KEY=sk-xxx
+```
+```ts
+provider.languageModel('myapi/some-model')
+```
+
+### Multiple providers
+```bash
+OPENAI_API_KEY=sk-xxx
+ANTHROPIC_API_KEY=sk-ant-xxx
+DEEPSEEK_API_KEY=sk-ds-xxx
+```
+```ts
+provider.languageModel('openai/gpt-4o')
+provider.languageModel('anthropic/claude-sonnet-4-20250514')
+provider.languageModel('deepseek/deepseek-chat')
+```
+
+### Code-based config (skip env vars)
+```ts
+const provider = envProvider({
+  configs: {
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY!,
+      preset: 'openai',
+    },
+    custom: {
+      apiKey: 'key',
+      baseURL: 'https://custom.api.com/v1',
+      compatible: 'openai-compatible',
+    },
+  },
+})
+```
+
+### Provider registry
+```ts
+import { createProviderRegistry } from 'ai'
+
+const registry = createProviderRegistry({ env: envProvider() })
+registry.languageModel('env:openai/gpt-4o')
+registry.embeddingModel('env:openai/text-embedding-3-small')
+```
+
+### Bundler-safe (explicit factories)
+```ts
+import { createOpenAI } from '@ai-sdk/openai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+
+const provider = envProvider({
+  factories: {
+    openai: createOpenAI,
+    anthropic: createAnthropic,
+  },
+})
+```
+
+### Custom headers & fetch
+```ts
+const provider = envProvider({
+  defaults: {
+    fetch: myCustomFetch,
+    headers: { 'X-App-Name': 'my-app' },
+  },
+})
+```
+
+## Exports
+
+```ts
+export { envProvider } from 'ai-sdk-provider-env'
+export { builtinPresets } from 'ai-sdk-provider-env'
+// Types: ConfigSetEntry, EnvProviderOptions, EnvProviderDefaults,
+//   EnvProviderFactories, EnvProviderFactoryOptions,
+//   EnvProviderNamedFactoryOptions, PresetConfig, ProviderV3Compatible
+```
