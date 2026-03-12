@@ -84,4 +84,16 @@ export const builtinPresets: Record<string, PresetConfig> = {
     baseURL: 'https://api.siliconflow.cn/v1',
     compatible: 'openai-compatible',
   },
+
+  // xAI (Grok series)
+  xai: {
+    baseURL: 'https://api.x.ai/v1',
+    compatible: 'openai-compatible',
+  },
+
+  // Zhipu AI International (Z.AI — global endpoint for GLM series)
+  zai: {
+    baseURL: 'https://api.z.ai/api/paas/v4',
+    compatible: 'openai-compatible',
+  },
 }
