@@ -105,6 +105,8 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
 | `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
+| `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
 | `together` | `https://api.together.xyz/v1` | `openai-compatible` |
@@ -119,8 +121,6 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `xai` | `https://api.x.ai/v1` | `openai-compatible` |
 | `zai` | `https://api.z.ai/api/paas/v4` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
-| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
-| `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 
 To disable auto-detection: `envProvider({ presetAutoDetect: false })`. See [Advanced Usage](./docs/advanced.md#preset-auto-detect) for details.
 
