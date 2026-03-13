@@ -105,6 +105,8 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
 | `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
+| `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
 | `together` | `https://api.together.xyz/v1` | `openai-compatible` |
