@@ -42,7 +42,7 @@ Config set maps to UPPERCASED env var prefix. Hyphens normalize to underscores:
 ## Built-in Presets
 
 When a config set name matches a preset, it auto-applies — only `_API_KEY` is needed.
-Available presets: openai, anthropic, google, deepseek, groq, together, fireworks, mistral, moonshot, moonshot-china, perplexity, openrouter, siliconflow, siliconflow-china, xai, zai, zhipu.
+Available presets: openai, anthropic, google, deepseek, groq, together, fireworks, mistral, moonshot, moonshot-china, perplexity, openrouter, siliconflow, siliconflow-china, xai, zai, zhipu, opencode-zen, opencode-go.
 
 Each preset provides a default `baseURL` and `compatible` mode.
 For full details (URLs, compatible modes), inspect the `builtinPresets` export:

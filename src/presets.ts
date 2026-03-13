@@ -108,4 +108,16 @@ export const builtinPresets: Record<string, PresetConfig> = {
     baseURL: 'https://api.z.ai/api/paas/v4',
     compatible: 'openai-compatible',
   },
+
+  // OpenCode Zen (curated multi-model AI gateway)
+  'opencode-zen': {
+    baseURL: 'https://opencode.ai/zen/v1',
+    compatible: 'openai-compatible',
+  },
+
+  // OpenCode Go (low-cost subscription for open coding models)
+  'opencode-go': {
+    baseURL: 'https://opencode.ai/zen/go/v1',
+    compatible: 'openai-compatible',
+  },
 }

@@ -119,6 +119,8 @@ provider.languageModel('deepseek/deepseek-chat')   // 直接可用
 | `xai` | `https://api.x.ai/v1` | `openai-compatible` |
 | `zai` | `https://api.z.ai/api/paas/v4` | `openai-compatible` |
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
+| `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 
 停用自動偵測：`envProvider({ presetAutoDetect: false })`。詳見[進階用法](./docs/advanced_zh.md#preset-自動偵測)。
 
