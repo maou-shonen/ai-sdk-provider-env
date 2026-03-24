@@ -1356,21 +1356,23 @@ describe('envProvider', () => {
       expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(1)
     })
 
-    // --- All model methods ---
-    it('should apply nativeRouting to embeddingModel', () => {
+    // --- Non-language model methods should NOT apply native routing ---
+    it('should NOT apply nativeRouting to embeddingModel', () => {
       const provider = createEnvProvider(factories, {
         configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
       })
       provider.embeddingModel('myconfig/claude-embed')
-      expect(mockCreateAnthropic).toHaveBeenCalled()
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
     })
 
-    it('should apply nativeRouting to imageModel', () => {
+    it('should NOT apply nativeRouting to imageModel', () => {
       const provider = createEnvProvider(factories, {
         configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
       })
       provider.imageModel('myconfig/gpt-4o')
-      expect(mockCreateOpenAI).toHaveBeenCalled()
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateOpenAI).not.toHaveBeenCalled()
     })
 
     // --- Config priority tests ---
@@ -1380,6 +1382,24 @@ describe('envProvider', () => {
       })
       provider.languageModel('myconfig/claude-sonnet-4-20250514')
       expect(mockCreateAnthropic).toHaveBeenCalled()
+    })
+
+    it('should inherit nativeRouting from preset when code config does not set it', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { zen: { preset: 'opencode-zen', apiKey: 'key' } },
+      })
+      provider.languageModel('zen/claude-sonnet-4-20250514')
+      expect(mockCreateAnthropic).toHaveBeenCalled()
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('code config nativeRouting=false should override preset nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { zen: { preset: 'opencode-zen', apiKey: 'key', nativeRouting: false } },
+      })
+      provider.languageModel('zen/claude-sonnet-4-20250514')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
     })
 
     describe('NATIVE_ROUTING env var', () => {

@@ -125,7 +125,7 @@ export function createEnvProvider(
           baseURL: config.baseURL ?? preset.baseURL,
           apiKey: config.apiKey,
           compatible: config.compatible ?? preset.compatible,
-          nativeRouting: config.nativeRouting,
+          nativeRouting: config.nativeRouting ?? preset.nativeRouting,
           ...(config.headers && { headers: config.headers }),
         }
       }
@@ -441,17 +441,17 @@ export function createEnvProvider(
 
     embeddingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet, model).embeddingModel(model)
+      return getProvider(configSet).embeddingModel(model)
     },
 
     imageModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet, model).imageModel(model)
+      return getProvider(configSet).imageModel(model)
     },
 
     textEmbeddingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet, model)
+      const provider = getProvider(configSet)
       // Prefer textEmbeddingModel if the underlying provider has it (V3).
       if (provider.textEmbeddingModel) {
         return provider.textEmbeddingModel(model)
@@ -466,7 +466,7 @@ export function createEnvProvider(
 
     transcriptionModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet, model)
+      const provider = getProvider(configSet)
       if (!provider.transcriptionModel) {
         throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' })
       }
@@ -475,7 +475,7 @@ export function createEnvProvider(
 
     speechModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet, model)
+      const provider = getProvider(configSet)
       if (!provider.speechModel) {
         throw new NoSuchModelError({ modelId, modelType: 'speechModel' })
       }
@@ -484,7 +484,7 @@ export function createEnvProvider(
 
     rerankingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet, model)
+      const provider = getProvider(configSet)
       if (!provider.rerankingModel) {
         throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' })
       }
