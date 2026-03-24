@@ -1450,6 +1450,66 @@ describe('envProvider', () => {
     })
   })
 
+  describe('nativeRouting integration', () => {
+    let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
+    let mockCreateAnthropic: ReturnType<typeof createMockFactories>['mockCreateAnthropic']
+    let mockCreateGemini: ReturnType<typeof createMockFactories>['mockCreateGemini']
+    let mockCreateOpenAICompatible: ReturnType<typeof createMockFactories>['mockCreateOpenAICompatible']
+    let factories: ProviderFactories
+
+    beforeEach(() => {
+      ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible } = createMockFactories())
+    })
+
+    afterEach(() => { clearTestEnv() })
+
+    it('opencode-zen/claude-* routes to anthropic with opencode-zen baseURL', () => {
+      setEnv('OPENCODE_ZEN_API_KEY', 'zen-key')
+      const provider = createEnvProvider(factories)
+      provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+      expect(mockCreateAnthropic).toHaveBeenCalledWith(expect.objectContaining({
+        baseURL: 'https://opencode.ai/zen/v1',
+        apiKey: 'zen-key',
+      }))
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('opencode-zen/gpt-* routes to openai factory', () => {
+      setEnv('OPENCODE_ZEN_API_KEY', 'zen-key')
+      const provider = createEnvProvider(factories)
+      provider.languageModel('opencode-zen/gpt-4o')
+      expect(mockCreateOpenAI).toHaveBeenCalledWith(expect.objectContaining({
+        baseURL: 'https://opencode.ai/zen/v1',
+      }))
+    })
+
+    it('opencode-zen/gemini-* routes to gemini factory', () => {
+      setEnv('OPENCODE_ZEN_API_KEY', 'zen-key')
+      const provider = createEnvProvider(factories)
+      provider.languageModel('opencode-zen/gemini-3-flash')
+      expect(mockCreateGemini).toHaveBeenCalledWith(expect.objectContaining({
+        baseURL: 'https://opencode.ai/zen/v1',
+      }))
+    })
+
+    it('opencode-zen/minimax-* falls back to openai-compatible', () => {
+      setEnv('OPENCODE_ZEN_API_KEY', 'zen-key')
+      const provider = createEnvProvider(factories)
+      provider.languageModel('opencode-zen/minimax-m2.5')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
+    })
+
+    it('OPENCODE_ZEN_NATIVE_ROUTING=false disables routing', () => {
+      setEnv('OPENCODE_ZEN_API_KEY', 'zen-key')
+      setEnv('OPENCODE_ZEN_NATIVE_ROUTING', 'false')
+      const provider = createEnvProvider(factories)
+      provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
+    })
+  })
+
   describe('openai fallback to openai-compatible', () => {
     it('should fall back to openai-compatible when createOpenAI throws MODULE_NOT_FOUND', () => {
       const moduleNotFoundError = Object.assign(
