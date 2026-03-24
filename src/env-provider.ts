@@ -95,7 +95,7 @@ export function createEnvProvider(
   /**
    * Resolve baseURL and compatible from a preset name.
    */
-  function resolvePreset(presetName: string): { baseURL: string, compatible: string } {
+  function resolvePreset(presetName: string): { baseURL: string, compatible: string, nativeRouting?: boolean } {
     const preset = builtinPresets[presetName]
     if (!preset) {
       const available = Object.keys(builtinPresets).join(', ')
@@ -106,6 +106,7 @@ export function createEnvProvider(
     return {
       baseURL: preset.baseURL,
       compatible: preset.compatible ?? 'openai-compatible',
+      nativeRouting: preset.nativeRouting,
     }
   }
 
@@ -191,6 +192,25 @@ export function createEnvProvider(
       }
     }
 
+    // Parse NATIVE_ROUTING env var (boolean: 'true'/'false', case-insensitive)
+    const nativeRoutingRaw = env('NATIVE_ROUTING')
+    let nativeRoutingFromEnv: boolean | undefined
+    if (nativeRoutingRaw !== undefined) {
+      const lower = nativeRoutingRaw.toLowerCase()
+      if (lower === 'true') {
+        nativeRoutingFromEnv = true
+      }
+      else if (lower === 'false') {
+        nativeRoutingFromEnv = false
+      }
+      else {
+        throw new Error(
+          `[ai-sdk-provider-env] Invalid value for ${prefix}${separator}NATIVE_ROUTING: "${nativeRoutingRaw}". `
+          + `Expected "true" or "false".`,
+        )
+      }
+    }
+
     // Check for preset
     const presetName = env('PRESET')
     if (presetName) {
@@ -199,6 +219,7 @@ export function createEnvProvider(
         baseURL: env('BASE_URL') ?? preset.baseURL,
         apiKey,
         compatible: env('COMPATIBLE') ?? preset.compatible,
+        nativeRouting: nativeRoutingFromEnv ?? preset.nativeRouting,
         ...(headers && { headers }),
       }
     }
@@ -210,6 +231,7 @@ export function createEnvProvider(
         baseURL,
         apiKey,
         compatible: env('COMPATIBLE') ?? 'openai-compatible',
+        nativeRouting: nativeRoutingFromEnv,
         ...(headers && { headers }),
       }
     }
@@ -222,6 +244,7 @@ export function createEnvProvider(
           baseURL: autoPreset.baseURL,
           apiKey,
           compatible: env('COMPATIBLE') ?? autoPreset.compatible ?? 'openai-compatible',
+          nativeRouting: nativeRoutingFromEnv ?? autoPreset.nativeRouting,
           ...(headers && { headers }),
         }
       }

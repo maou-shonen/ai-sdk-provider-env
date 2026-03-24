@@ -1381,6 +1381,73 @@ describe('envProvider', () => {
       provider.languageModel('myconfig/claude-sonnet-4-20250514')
       expect(mockCreateAnthropic).toHaveBeenCalled()
     })
+
+    describe('NATIVE_ROUTING env var', () => {
+      it('should enable nativeRouting when NATIVE_ROUTING=true', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', 'true')
+        const provider = createEnvProvider(factories)
+        provider.languageModel('zen/claude-sonnet-4-20250514')
+        expect(mockCreateAnthropic).toHaveBeenCalled()
+        expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+      })
+
+      it('should disable nativeRouting when NATIVE_ROUTING=false', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', 'false')
+        const provider = createEnvProvider(factories)
+        provider.languageModel('zen/claude-sonnet-4-20250514')
+        expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+        expect(mockCreateAnthropic).not.toHaveBeenCalled()
+      })
+
+      it('should be case-insensitive: TRUE is accepted', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', 'TRUE')
+        const provider = createEnvProvider(factories)
+        provider.languageModel('zen/claude-sonnet-4-20250514')
+        expect(mockCreateAnthropic).toHaveBeenCalled()
+      })
+
+      it('should throw actionable error on invalid value', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', 'invalid')
+        const provider = createEnvProvider(factories)
+        expect(() => provider.languageModel('zen/model'))
+          .toThrow('Invalid value for ZEN_NATIVE_ROUTING')
+      })
+
+      it('should throw error when NATIVE_ROUTING=1 (only true/false accepted)', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', '1')
+        const provider = createEnvProvider(factories)
+        expect(() => provider.languageModel('zen/model'))
+          .toThrow('Invalid value for ZEN_NATIVE_ROUTING')
+      })
+
+      it('env var NATIVE_ROUTING=true enables routing on BASE_URL path', () => {
+        setEnv('ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_NATIVE_ROUTING', 'true')
+        const provider = createEnvProvider(factories)
+        provider.languageModel('zen/gemini-3-flash')
+        expect(mockCreateGemini).toHaveBeenCalled()
+      })
+
+      it('env var NATIVE_ROUTING=true enables routing on PRESET path', () => {
+        setEnv('ZEN_API_KEY', 'key')
+        setEnv('ZEN_PRESET', 'deepseek')
+        setEnv('ZEN_NATIVE_ROUTING', 'true')
+        const provider = createEnvProvider(factories)
+        provider.languageModel('zen/claude-sonnet-4-20250514')
+        expect(mockCreateAnthropic).toHaveBeenCalled()
+      })
+    })
   })
 
   describe('openai fallback to openai-compatible', () => {
