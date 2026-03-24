@@ -3,7 +3,7 @@ import type { ProviderFactories } from './env-provider'
 import type { ProviderV3Compatible } from './types'
 import { NoSuchModelError } from '@ai-sdk/provider'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { createEnvProvider, envProvider } from './env-provider'
+import { createEnvProvider, detectNativeCompatible, envProvider } from './env-provider'
 import { isModuleNotFoundError } from './factories'
 
 // --- Mock helpers ---
@@ -214,6 +214,56 @@ describe('isModuleNotFoundError', () => {
   it('should return false for non-object errors', () => {
     expect(isModuleNotFoundError('string error', '@ai-sdk/openai')).toBe(false)
     expect(isModuleNotFoundError(null, '@ai-sdk/openai')).toBe(false)
+  })
+})
+
+describe('detectNativeCompatible', () => {
+  it('should return anthropic for claude-sonnet-4-20250514', () => {
+    expect(detectNativeCompatible('claude-sonnet-4-20250514')).toBe('anthropic')
+  })
+
+  it('should return anthropic for claude-3-5-haiku', () => {
+    expect(detectNativeCompatible('claude-3-5-haiku')).toBe('anthropic')
+  })
+
+  it('should return gemini for gemini-3.1-pro', () => {
+    expect(detectNativeCompatible('gemini-3.1-pro')).toBe('gemini')
+  })
+
+  it('should return gemini for gemini-3-flash', () => {
+    expect(detectNativeCompatible('gemini-3-flash')).toBe('gemini')
+  })
+
+  it('should return openai for gpt-5.4', () => {
+    expect(detectNativeCompatible('gpt-5.4')).toBe('openai')
+  })
+
+  it('should return openai for gpt-5.4-pro', () => {
+    expect(detectNativeCompatible('gpt-5.4-pro')).toBe('openai')
+  })
+
+  it('should return undefined for unknown llama model', () => {
+    expect(detectNativeCompatible('llama-3.3-70b')).toBeUndefined()
+  })
+
+  it('should return undefined for unknown minimax model', () => {
+    expect(detectNativeCompatible('minimax-m2.5')).toBeUndefined()
+  })
+
+  it('should return undefined for o1-* (known limitation)', () => {
+    expect(detectNativeCompatible('o1-mini')).toBeUndefined()
+  })
+
+  it('should return undefined for org-prefixed models', () => {
+    expect(detectNativeCompatible('meta-llama/llama-3-70b')).toBeUndefined()
+  })
+
+  it('should return undefined for empty string', () => {
+    expect(detectNativeCompatible('')).toBeUndefined()
+  })
+
+  it('should return undefined for bare "claude" without hyphen', () => {
+    expect(detectNativeCompatible('claude')).toBeUndefined()
   })
 })
 

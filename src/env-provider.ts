@@ -44,6 +44,25 @@ const defaultFactories: ProviderFactories = {
 }
 
 /**
+ * Detect the native compatible mode for a model based on its ID prefix.
+ *
+ * Used by nativeRouting to auto-route model families to their native provider SDKs.
+ * Only `claude-*`, `gemini-*`, and `gpt-*` prefixes are matched.
+ * Known limitation: `o1-*`, `o3-*`, `chatgpt-*` are NOT matched (use explicit compatible mode).
+ *
+ * @returns The detected compatible mode, or `undefined` if no match.
+ */
+export function detectNativeCompatible(model: string): 'openai' | 'anthropic' | 'gemini' | undefined {
+  if (model.startsWith('claude-'))
+    return 'anthropic'
+  if (model.startsWith('gemini-'))
+    return 'gemini'
+  if (model.startsWith('gpt-'))
+    return 'openai'
+  return undefined
+}
+
+/**
  * Internally resolved configuration with all required fields determined.
  */
 interface ResolvedConfig {
@@ -51,6 +70,7 @@ interface ResolvedConfig {
   apiKey: string
   compatible: string
   headers?: Record<string, string>
+  nativeRouting?: boolean
 }
 
 /**
