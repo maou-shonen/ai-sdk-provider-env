@@ -124,6 +124,7 @@ export function createEnvProvider(
           baseURL: config.baseURL ?? preset.baseURL,
           apiKey: config.apiKey,
           compatible: config.compatible ?? preset.compatible,
+          nativeRouting: config.nativeRouting,
           ...(config.headers && { headers: config.headers }),
         }
       }
@@ -139,6 +140,7 @@ export function createEnvProvider(
         baseURL: config.baseURL,
         apiKey: config.apiKey,
         compatible: config.compatible ?? 'openai-compatible',
+        nativeRouting: config.nativeRouting,
         ...(config.headers && { headers: config.headers }),
       }
     }
@@ -241,7 +243,7 @@ export function createEnvProvider(
    * Create the underlying provider based on the compatibility mode.
    */
   function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3Compatible {
-    const { baseURL, apiKey, compatible, headers } = config
+    const { baseURL, apiKey, compatible, headers, nativeRouting } = config
 
     // Merge headers: defaults.headers as base, config-set headers override matching keys
     const mergedHeaders = (defaultHeaders || headers)
@@ -284,9 +286,37 @@ export function createEnvProvider(
           throw error
         }
       case 'anthropic':
-        return factories.createAnthropic(baseOpts)
+        try {
+          return factories.createAnthropic(baseOpts)
+        }
+        catch (error) {
+          if (isModuleNotFoundError(error, '@ai-sdk/anthropic')) {
+            const nativeHint = nativeRouting
+              ? ` (nativeRouting auto-detected this model as Anthropic. Disable with ${configSet.replace(/-/g, '_').toUpperCase()}_NATIVE_ROUTING=false to use openai-compatible instead.)`
+              : ''
+            throw new Error(
+              `[ai-sdk-provider-env] Anthropic provider requires @ai-sdk/anthropic. `
+              + `Run: npm install @ai-sdk/anthropic${nativeHint}`,
+            )
+          }
+          throw error
+        }
       case 'gemini':
-        return factories.createGemini(baseOpts)
+        try {
+          return factories.createGemini(baseOpts)
+        }
+        catch (error) {
+          if (isModuleNotFoundError(error, '@ai-sdk/google')) {
+            const nativeHint = nativeRouting
+              ? ` (nativeRouting auto-detected this model as Gemini. Disable with ${configSet.replace(/-/g, '_').toUpperCase()}_NATIVE_ROUTING=false to use openai-compatible instead.)`
+              : ''
+            throw new Error(
+              `[ai-sdk-provider-env] Google provider requires @ai-sdk/google. `
+              + `Run: npm install @ai-sdk/google${nativeHint}`,
+            )
+          }
+          throw error
+        }
       case 'openai-compatible':
         try {
           return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
@@ -317,9 +347,15 @@ export function createEnvProvider(
    * Env-var-backed config sets normalize hyphens to underscores, so aliases
    * like `my-api` and `my_api` share one cached provider.
    */
-  function getCacheKey(configSet: string): string {
+  function getCacheKey(configSet: string, config: ResolvedConfig, effectiveCompatible: string): string {
     if (options.configs?.[configSet]) {
+      if (config.nativeRouting) {
+        return `config:${configSet.toUpperCase()}:${effectiveCompatible}`
+      }
       return `config:${configSet.toUpperCase()}`
+    }
+    if (config.nativeRouting) {
+      return `env:${configSet.replace(/-/g, '_').toUpperCase()}:${effectiveCompatible}`
     }
     return `env:${configSet.replace(/-/g, '_').toUpperCase()}`
   }
@@ -331,17 +367,26 @@ export function createEnvProvider(
    * This is safe because `ProviderV3` and `ProviderV4` have identical
    * method signatures — only `specificationVersion` and model type brands differ.
    */
-  function getProvider(configSet: string): ProviderV3 {
-    const key = getCacheKey(configSet)
+  function getProvider(configSet: string, model?: string): ProviderV3 {
+    const config = resolveConfig(configSet)
+
+    const effectiveCompatible = (config.nativeRouting && model)
+      ? (detectNativeCompatible(model) ?? config.compatible)
+      : config.compatible
+
+    const key = getCacheKey(configSet, config, effectiveCompatible)
     const cached = cache.get(key)
     if (cached)
       return cached
 
-    const config = resolveConfig(configSet)
+    const configForProvider = effectiveCompatible !== config.compatible
+      ? { ...config, compatible: effectiveCompatible }
+      : config
+
     // Safe cast: V3 and V4 providers are structurally identical.
     // The underlying provider may be ProviderV3 or ProviderV4 depending
     // on which SDK version the user has installed.
-    const provider = createUnderlying(configSet, config) as unknown as ProviderV3
+    const provider = createUnderlying(configSet, configForProvider) as unknown as ProviderV3
     cache.set(key, provider)
     return provider
   }
@@ -368,22 +413,22 @@ export function createEnvProvider(
 
     languageModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet).languageModel(model)
+      return getProvider(configSet, model).languageModel(model)
     },
 
     embeddingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet).embeddingModel(model)
+      return getProvider(configSet, model).embeddingModel(model)
     },
 
     imageModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet).imageModel(model)
+      return getProvider(configSet, model).imageModel(model)
     },
 
     textEmbeddingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet)
+      const provider = getProvider(configSet, model)
       // Prefer textEmbeddingModel if the underlying provider has it (V3).
       if (provider.textEmbeddingModel) {
         return provider.textEmbeddingModel(model)
@@ -398,7 +443,7 @@ export function createEnvProvider(
 
     transcriptionModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet)
+      const provider = getProvider(configSet, model)
       if (!provider.transcriptionModel) {
         throw new NoSuchModelError({ modelId, modelType: 'transcriptionModel' })
       }
@@ -407,7 +452,7 @@ export function createEnvProvider(
 
     speechModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet)
+      const provider = getProvider(configSet, model)
       if (!provider.speechModel) {
         throw new NoSuchModelError({ modelId, modelType: 'speechModel' })
       }
@@ -416,7 +461,7 @@ export function createEnvProvider(
 
     rerankingModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      const provider = getProvider(configSet)
+      const provider = getProvider(configSet, model)
       if (!provider.rerankingModel) {
         throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' })
       }

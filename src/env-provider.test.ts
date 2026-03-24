@@ -1256,6 +1256,133 @@ describe('envProvider', () => {
     })
   })
 
+  describe('nativeRouting', () => {
+    let mockCreateOpenAI: ReturnType<typeof createMockFactories>['mockCreateOpenAI']
+    let mockCreateAnthropic: ReturnType<typeof createMockFactories>['mockCreateAnthropic']
+    let mockCreateGemini: ReturnType<typeof createMockFactories>['mockCreateGemini']
+    let mockCreateOpenAICompatible: ReturnType<typeof createMockFactories>['mockCreateOpenAICompatible']
+    let factories: ProviderFactories
+
+    beforeEach(() => {
+      ({ factories, mockCreateOpenAI, mockCreateAnthropic, mockCreateGemini, mockCreateOpenAICompatible } = createMockFactories())
+    })
+
+    afterEach(() => { clearTestEnv() })
+
+    // --- Routing tests ---
+    it('should route claude-* to anthropic factory when nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/claude-sonnet-4-20250514')
+      expect(mockCreateAnthropic).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://gw.example.com/v1' }))
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('should route gemini-* to gemini factory when nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/gemini-3-flash')
+      expect(mockCreateGemini).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://gw.example.com/v1' }))
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
+    })
+
+    it('should route gpt-* to openai factory when nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/gpt-4o')
+      expect(mockCreateOpenAI).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://gw.example.com/v1' }))
+    })
+
+    it('should fall back to default compatible for unknown model prefixes when nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/llama-3-70b')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
+      expect(mockCreateGemini).not.toHaveBeenCalled()
+    })
+
+    it('should NOT apply native routing when nativeRouting=false', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: false } },
+      })
+      provider.languageModel('myconfig/claude-sonnet-4-20250514')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
+    })
+
+    it('should NOT apply native routing when nativeRouting not set (default)', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key' } },
+      })
+      provider.languageModel('myconfig/claude-sonnet-4-20250514')
+      expect(mockCreateOpenAICompatible).toHaveBeenCalled()
+      expect(mockCreateAnthropic).not.toHaveBeenCalled()
+    })
+
+    // --- Cache tests ---
+    it('should create separate cached providers for different model families under same configSet', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/claude-sonnet-4-20250514')
+      provider.languageModel('myconfig/gpt-4o')
+      // Should call 2 different factories (not 1)
+      expect(mockCreateAnthropic).toHaveBeenCalledTimes(1)
+      expect(mockCreateOpenAI).toHaveBeenCalledTimes(1)
+    })
+
+    it('should reuse cached provider for same model family', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/claude-haiku')
+      provider.languageModel('myconfig/claude-sonnet')
+      // Only 1 factory call — both are anthropic, same cached provider
+      expect(mockCreateAnthropic).toHaveBeenCalledTimes(1)
+    })
+
+    it('should use original cache behavior when nativeRouting=false', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key' } },
+      })
+      provider.languageModel('myconfig/claude-haiku')
+      provider.languageModel('myconfig/gpt-4o')
+      // Only 1 factory call (no per-model routing)
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledTimes(1)
+    })
+
+    // --- All model methods ---
+    it('should apply nativeRouting to embeddingModel', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.embeddingModel('myconfig/claude-embed')
+      expect(mockCreateAnthropic).toHaveBeenCalled()
+    })
+
+    it('should apply nativeRouting to imageModel', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.imageModel('myconfig/gpt-4o')
+      expect(mockCreateOpenAI).toHaveBeenCalled()
+    })
+
+    // --- Config priority tests ---
+    it('should use nativeRouting from code-based configs', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/claude-sonnet-4-20250514')
+      expect(mockCreateAnthropic).toHaveBeenCalled()
+    })
+  })
+
   describe('openai fallback to openai-compatible', () => {
     it('should fall back to openai-compatible when createOpenAI throws MODULE_NOT_FOUND', () => {
       const moduleNotFoundError = Object.assign(
