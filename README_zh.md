@@ -74,6 +74,7 @@ provider.languageModel('my_api/some-model')  // 相同的環境變數
 | `{PREFIX}_PRESET` | 否 | 內建 preset 名稱（如 `openai`） |
 | `{PREFIX}_COMPATIBLE` | 否 | `openai` · `anthropic` · `gemini` · `openai-compatible`（預設） |
 | `{PREFIX}_HEADERS` | 否 | 自訂 HTTP headers（JSON 格式） |
+| `{PREFIX}_NATIVE_ROUTING` | 否 | 啟用/停用原生模型路由（`true`/`false`） |
 
 設定 `_PRESET` 或[自動偵測](#內建-presets)匹配後，`_BASE_URL` 與 `_COMPATIBLE` 會自動套用 preset 預設值。
 
@@ -105,7 +106,7 @@ provider.languageModel('deepseek/deepseek-chat')   // 直接可用
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
 | `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
-| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible`（已啟用 nativeRouting） |
 | `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
@@ -123,6 +124,35 @@ provider.languageModel('deepseek/deepseek-chat')   // 直接可用
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 
 停用自動偵測：`envProvider({ presetAutoDetect: false })`。詳見[進階用法](./docs/advanced_zh.md#preset-自動偵測)。
+
+## 原生路由
+
+當設定集使用的 gateway 同時提供多個 AI 提供商（如 `opencode-zen`）時，`nativeRouting` 會自動偵測模型家族，並根據模型 ID 前綴路由至對應的原生 SDK：
+
+- `claude-*` → `@ai-sdk/anthropic`
+- `gemini-*` → `@ai-sdk/google`
+- `gpt-*` → `@ai-sdk/openai`
+- 其他模型退回到 config set 的預設相容模式
+
+```bash
+# opencode-zen preset 已啟用 nativeRouting，只需設定 API key
+OPENCODE_ZEN_API_KEY=zen-xxx
+```
+
+```ts
+// 自動路由至原生 Anthropic SDK
+provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+
+// 自動路由至原生 Google SDK
+provider.languageModel('opencode-zen/gemini-3-flash')
+
+// 其他模型使用 openai-compatible
+provider.languageModel('opencode-zen/minimax-m2.5')
+```
+
+停用：`OPENCODE_ZEN_NATIVE_ROUTING=false`
+
+> **已知限制**：`o1-*`、`o3-*`、`chatgpt-*` 模型不會自動路由。請明確設定 `{PREFIX}_COMPATIBLE=openai`。
 
 ## 文件
 

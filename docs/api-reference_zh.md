@@ -36,8 +36,23 @@ interface ConfigSetEntry {
   baseURL?: string
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // 繼承 preset 值，或 'openai-compatible'
   headers?: Record<string, string>
+  nativeRouting?: boolean // 依模型前綴自動路由至原生 SDK（claude-* → anthropic、gemini-* → google、gpt-* → openai）
 }
 ```
+
+### `PresetConfig`
+
+內建 preset 與 `ConfigSetEntry` 欄位相同（不含 `apiKey`）。`nativeRouting` 欄位可用於 preset：
+
+```ts
+interface PresetConfig {
+  baseURL: string
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
+  nativeRouting?: boolean
+}
+```
+
+`opencode-zen` preset 預設啟用 `nativeRouting: true`。可透過 `{PREFIX}_NATIVE_ROUTING=false` 覆蓋。
 
 ### 模型 ID 格式
 

@@ -21,6 +21,65 @@ const model = provider.languageModel('openrouter/some-model')
 envProvider({ presetAutoDetect: false })
 ```
 
+## 原生路由
+
+部分多模型 gateway（如 `opencode-zen`）在同一個 base URL 下提供多個 AI 提供商的協定。`nativeRouting` 功能會自動偵測模型家族，並根據模型 ID 前綴選擇對應的原生 AI SDK。
+
+### 運作原理
+
+當 preset 或 config set 啟用 `nativeRouting` 時：
+
+| 模型前綴 | 路由至 |
+|---|---|
+| `claude-*` | `@ai-sdk/anthropic` |
+| `gemini-*` | `@ai-sdk/google` |
+| `gpt-*` | `@ai-sdk/openai` |
+| 其他 | 預設 `compatible` 模式 |
+
+### 搭配 opencode-zen 使用
+
+`opencode-zen` preset 預設啟用 `nativeRouting`：
+
+```bash
+OPENCODE_ZEN_API_KEY=zen-xxx
+```
+
+```ts
+// 自動路由至 @ai-sdk/anthropic
+provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+
+// 自動路由至 @ai-sdk/google
+provider.languageModel('opencode-zen/gemini-3-flash')
+```
+
+### 停用原生路由
+
+停用特定 config set 的原生路由：
+
+```bash
+OPENCODE_ZEN_NATIVE_ROUTING=false
+```
+
+或在程式碼中設定：
+
+```ts
+const provider = envProvider({
+  configs: {
+    mygateway: {
+      baseURL: 'https://my-gateway.com/v1',
+      apiKey: process.env.MYGATEWAY_API_KEY!,
+      nativeRouting: false,
+    },
+  },
+})
+```
+
+### 已知限制
+
+- 僅匹配 `claude-*`、`gemini-*`、`gpt-*` 前綴。
+- `o1-*`、`o3-*`、`chatgpt-*` 不會自動路由。請明確設定 `{PREFIX}_COMPATIBLE=openai`。
+- 本版本不支援 `nativeRouting` 物件形式（逐路由覆蓋）。
+
 ## Provider Fallback
 
 當使用 `compatible: 'openai'` 且未安裝 `@ai-sdk/openai` 時，provider 會自動回退至 `@ai-sdk/openai-compatible`（需執行期可解析）。單檔打包請參閱 [Bundler 使用方式](./bundler_zh.md)。

@@ -38,6 +38,7 @@ Config set maps to UPPERCASED env var prefix. Hyphens normalize to underscores:
 | `{PREFIX}_PRESET`     | No                    | Built-in preset name                                         |
 | `{PREFIX}_COMPATIBLE` | No                    | `openai`·`anthropic`·`gemini`·`openai-compatible` (default)  |
 | `{PREFIX}_HEADERS`    | No                    | Custom HTTP headers (JSON string)                            |
+| `{PREFIX}_NATIVE_ROUTING` | No               | Enable/disable native model routing (`true`/`false`)         |
 
 ## Built-in Presets
 
@@ -74,6 +75,7 @@ interface ConfigSetEntry {
   baseURL?: string                  // optional when preset is set
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
   headers?: Record<string, string>
+  nativeRouting?: boolean           // enable native SDK routing per model prefix
 }
 ```
 
