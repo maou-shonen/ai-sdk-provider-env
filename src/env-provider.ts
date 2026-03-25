@@ -420,7 +420,7 @@ export function createEnvProvider(
         throw new Error(
           `${error.message}`
           + ` (nativeRouting auto-detected this model as ${effectiveCompatible}.`
-          + ` Disable with ${prefix}_NATIVE_ROUTING=false to use ${config.compatible} instead.)`,
+          + ` Disable with ${prefix}${separator}NATIVE_ROUTING=false to use ${config.compatible} instead.)`,
           { cause: error },
         )
       }
