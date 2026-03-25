@@ -1468,6 +1468,97 @@ describe('envProvider', () => {
         expect(mockCreateAnthropic).toHaveBeenCalled()
       })
     })
+
+    // --- Error hint tests ---
+    describe('nativeRouting error hints', () => {
+      it('should include nativeRouting hint when auto-routed provider SDK is missing', () => {
+        const moduleNotFoundError = Object.assign(
+          new Error("Cannot find module '@ai-sdk/anthropic'"),
+          { code: 'MODULE_NOT_FOUND' },
+        )
+        const { factories: f } = createMockFactories()
+        f.createAnthropic = () => { throw moduleNotFoundError }
+
+        const provider = createEnvProvider(f, {
+          configs: { gw: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+        })
+        expect(() => provider.languageModel('gw/claude-sonnet-4-20250514'))
+          .toThrow(/nativeRouting auto-detected this model as anthropic/)
+      })
+
+      it('should include disable hint with correct env var name', () => {
+        const moduleNotFoundError = Object.assign(
+          new Error("Cannot find module '@ai-sdk/google'"),
+          { code: 'MODULE_NOT_FOUND' },
+        )
+        const { factories: f } = createMockFactories()
+        f.createGemini = () => { throw moduleNotFoundError }
+
+        const provider = createEnvProvider(f, {
+          configs: { 'my-gw': { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+        })
+        expect(() => provider.languageModel('my-gw/gemini-3-flash'))
+          .toThrow('MY_GW_NATIVE_ROUTING=false')
+      })
+
+      it('should NOT include nativeRouting hint when compatible is explicitly set', () => {
+        const moduleNotFoundError = Object.assign(
+          new Error("Cannot find module '@ai-sdk/anthropic'"),
+          { code: 'MODULE_NOT_FOUND' },
+        )
+        const { factories: f } = createMockFactories()
+        f.createAnthropic = () => { throw moduleNotFoundError }
+
+        // Explicitly set compatible: 'anthropic' — NOT auto-routed
+        const provider = createEnvProvider(f, {
+          configs: { gw: { baseURL: 'https://api.anthropic.com', apiKey: 'key', compatible: 'anthropic' } },
+        })
+        expect(() => provider.languageModel('gw/claude-sonnet'))
+          .toThrow('@ai-sdk/anthropic')
+        expect(() => {
+          try { provider.languageModel('gw/claude-sonnet') } catch (e: any) { throw e }
+        }).not.toThrow(/nativeRouting/)
+      })
+
+      it('should NOT add hint for non-module-not-found errors', () => {
+        const { factories: f } = createMockFactories()
+        f.createAnthropic = () => { throw new Error('Unexpected config error') }
+
+        const provider = createEnvProvider(f, {
+          configs: { gw: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+        })
+        try {
+          provider.languageModel('gw/claude-sonnet')
+          throw new Error('Expected error to be thrown')
+        }
+        catch (error: any) {
+          expect(error.message).toBe('Unexpected config error')
+          expect(error.message).not.toContain('nativeRouting')
+        }
+      })
+
+      it('should preserve original error as cause', () => {
+        const moduleNotFoundError = Object.assign(
+          new Error("Cannot find module '@ai-sdk/anthropic'"),
+          { code: 'MODULE_NOT_FOUND' },
+        )
+        const { factories: f } = createMockFactories()
+        f.createAnthropic = () => { throw moduleNotFoundError }
+
+        const provider = createEnvProvider(f, {
+          configs: { gw: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+        })
+        try {
+          provider.languageModel('gw/claude-sonnet-4-20250514')
+        }
+        catch (error: any) {
+          expect(error.cause).toBeDefined()
+          expect(error.cause.message).toContain('@ai-sdk/anthropic')
+          return
+        }
+        throw new Error('Expected error to be thrown')
+      })
+    })
   })
 
   describe('nativeRouting integration', () => {

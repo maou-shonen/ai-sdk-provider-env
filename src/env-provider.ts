@@ -266,7 +266,7 @@ export function createEnvProvider(
    * Create the underlying provider based on the compatibility mode.
    */
   function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3Compatible {
-    const { baseURL, apiKey, compatible, headers, nativeRouting } = config
+    const { baseURL, apiKey, compatible, headers } = config
 
     // Merge headers: defaults.headers as base, config-set headers override matching keys
     const mergedHeaders = (defaultHeaders || headers)
@@ -314,12 +314,9 @@ export function createEnvProvider(
         }
         catch (error) {
           if (isModuleNotFoundError(error, '@ai-sdk/anthropic')) {
-            const nativeHint = nativeRouting
-              ? ` (nativeRouting auto-detected this model as Anthropic. Disable with ${configSet.replace(/-/g, '_').toUpperCase()}_NATIVE_ROUTING=false to use openai-compatible instead.)`
-              : ''
             throw new Error(
-              `[ai-sdk-provider-env] Anthropic provider requires @ai-sdk/anthropic. `
-              + `Run: npm install @ai-sdk/anthropic${nativeHint}`,
+              '[ai-sdk-provider-env] Anthropic provider requires @ai-sdk/anthropic. '
+              + 'Run: npm install @ai-sdk/anthropic',
             )
           }
           throw error
@@ -330,12 +327,9 @@ export function createEnvProvider(
         }
         catch (error) {
           if (isModuleNotFoundError(error, '@ai-sdk/google')) {
-            const nativeHint = nativeRouting
-              ? ` (nativeRouting auto-detected this model as Gemini. Disable with ${configSet.replace(/-/g, '_').toUpperCase()}_NATIVE_ROUTING=false to use openai-compatible instead.)`
-              : ''
             throw new Error(
-              `[ai-sdk-provider-env] Google provider requires @ai-sdk/google. `
-              + `Run: npm install @ai-sdk/google${nativeHint}`,
+              '[ai-sdk-provider-env] Google provider requires @ai-sdk/google. '
+              + 'Run: npm install @ai-sdk/google',
             )
           }
           throw error
@@ -393,25 +387,45 @@ export function createEnvProvider(
   function getProvider(configSet: string, model?: string): ProviderV3 {
     const config = resolveConfig(configSet)
 
-    const effectiveCompatible = (config.nativeRouting && model)
-      ? (detectNativeCompatible(model) ?? config.compatible)
-      : config.compatible
+    const detectedCompatible = (config.nativeRouting && model)
+      ? detectNativeCompatible(model)
+      : undefined
+    const effectiveCompatible = detectedCompatible ?? config.compatible
+    const wasAutoRouted = detectedCompatible != null && detectedCompatible !== config.compatible
 
     const key = getCacheKey(configSet, config, effectiveCompatible)
     const cached = cache.get(key)
     if (cached)
       return cached
 
-    const configForProvider = effectiveCompatible !== config.compatible
+    const configForProvider = wasAutoRouted
       ? { ...config, compatible: effectiveCompatible }
       : config
 
-    // Safe cast: V3 and V4 providers are structurally identical.
-    // The underlying provider may be ProviderV3 or ProviderV4 depending
-    // on which SDK version the user has installed.
-    const provider = createUnderlying(configSet, configForProvider) as unknown as ProviderV3
-    cache.set(key, provider)
-    return provider
+    try {
+      // Safe cast: V3 and V4 providers are structurally identical.
+      // The underlying provider may be ProviderV3 or ProviderV4 depending
+      // on which SDK version the user has installed.
+      const provider = createUnderlying(configSet, configForProvider) as unknown as ProviderV3
+      cache.set(key, provider)
+      return provider
+    }
+    catch (error) {
+      // When nativeRouting auto-routed to a provider whose SDK is not installed,
+      // append a hint so users know they can disable routing to fall back.
+      // Only for module-not-found errors — other errors (config issues, SDK bugs)
+      // should propagate without misleading nativeRouting context.
+      if (wasAutoRouted && error instanceof Error && error.message.includes('[ai-sdk-provider-env]')) {
+        const prefix = configSet.replace(/-/g, '_').toUpperCase()
+        throw new Error(
+          `${error.message}`
+          + ` (nativeRouting auto-detected this model as ${effectiveCompatible}.`
+          + ` Disable with ${prefix}_NATIVE_ROUTING=false to use ${config.compatible} instead.)`,
+          { cause: error },
+        )
+      }
+      throw error
+    }
   }
 
   /**
