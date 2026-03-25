@@ -178,4 +178,17 @@ describe('presets', () => {
       }
     })
   })
+
+  describe('nativeRouting preset data', () => {
+    it('should have nativeRouting: true for opencode-zen', () => {
+      expect(builtinPresets['opencode-zen'].nativeRouting).toBe(true)
+    })
+
+    it('should NOT have nativeRouting on other presets', () => {
+      const presetsWithNativeRouting = Object.entries(builtinPresets)
+        .filter(([name, preset]) => name !== 'opencode-zen' && preset.nativeRouting)
+        .map(([name]) => name)
+      expect(presetsWithNativeRouting).toHaveLength(0)
+    })
+  })
 })

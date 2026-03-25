@@ -36,8 +36,23 @@ interface ConfigSetEntry {
   baseURL?: string
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // inherits from preset, or 'openai-compatible'
   headers?: Record<string, string>
+  nativeRouting?: boolean // auto-route by model prefix to native SDK (claude-* → anthropic, gemini-* → google, gpt-* → openai)
 }
 ```
+
+### `PresetConfig`
+
+Built-in presets expose the same fields as `ConfigSetEntry` (minus `apiKey`). The `nativeRouting` field is available on presets:
+
+```ts
+interface PresetConfig {
+  baseURL: string
+  compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
+  nativeRouting?: boolean
+}
+```
+
+The `opencode-zen` preset has `nativeRouting: true` by default. Override it with `{PREFIX}_NATIVE_ROUTING=false`.
 
 ### Model ID format
 

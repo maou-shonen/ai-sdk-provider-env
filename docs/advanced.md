@@ -21,6 +21,65 @@ Explicit `_PRESET` and `_BASE_URL` env vars always take precedence over auto-det
 envProvider({ presetAutoDetect: false })
 ```
 
+## Native Routing
+
+Some multi-model gateways (like `opencode-zen`) expose multiple AI provider protocols under one base URL. The `nativeRouting` feature auto-detects the model family from the model ID prefix and selects the corresponding native AI SDK.
+
+### How It Works
+
+When `nativeRouting` is enabled for a preset or config set:
+
+| Model prefix | Routes to |
+|---|---|
+| `claude-*` | `@ai-sdk/anthropic` |
+| `gemini-*` | `@ai-sdk/google` |
+| `gpt-*` | `@ai-sdk/openai` |
+| Other | Default `compatible` mode |
+
+### Using with opencode-zen
+
+The `opencode-zen` preset has `nativeRouting` enabled by default:
+
+```bash
+OPENCODE_ZEN_API_KEY=zen-xxx
+```
+
+```ts
+// Routes to @ai-sdk/anthropic automatically
+provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+
+// Routes to @ai-sdk/google automatically
+provider.languageModel('opencode-zen/gemini-3-flash')
+```
+
+### Disable Native Routing
+
+To disable for a specific config set:
+
+```bash
+OPENCODE_ZEN_NATIVE_ROUTING=false
+```
+
+Or in code:
+
+```ts
+const provider = envProvider({
+  configs: {
+    mygateway: {
+      baseURL: 'https://my-gateway.com/v1',
+      apiKey: process.env.MYGATEWAY_API_KEY!,
+      nativeRouting: false,
+    },
+  },
+})
+```
+
+### Known Limitations
+
+- Only `claude-*`, `gemini-*`, and `gpt-*` prefixes are matched.
+- `o1-*`, `o3-*`, `chatgpt-*` are NOT auto-routed. Use `{PREFIX}_COMPATIBLE=openai` for these.
+- `nativeRouting` as an object (per-route overrides) is not supported in this version.
+
 ## Provider Fallback
 
 When `compatible: 'openai'` is used and `@ai-sdk/openai` is not installed, the provider falls back to `@ai-sdk/openai-compatible` automatically (when resolvable at runtime). For single-file builds, see [Bundler Usage](./bundler.md).

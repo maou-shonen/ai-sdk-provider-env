@@ -113,6 +113,7 @@ export const builtinPresets: Record<string, PresetConfig> = {
   'opencode-zen': {
     baseURL: 'https://opencode.ai/zen/v1',
     compatible: 'openai-compatible',
+    nativeRouting: true,
   },
 
   // OpenCode Go (low-cost subscription for open coding models)

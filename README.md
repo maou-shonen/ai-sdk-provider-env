@@ -74,6 +74,7 @@ provider.languageModel('my_api/some-model')  // same env vars
 | `{PREFIX}_PRESET` | No | Built-in preset name (e.g. `openai`) |
 | `{PREFIX}_COMPATIBLE` | No | `openai` · `anthropic` · `gemini` · `openai-compatible` (default) |
 | `{PREFIX}_HEADERS` | No | Custom HTTP headers (JSON) |
+| `{PREFIX}_NATIVE_ROUTING` | No | Enable/disable native model routing (`true`/`false`) |
 
 When `_PRESET` is set or [auto-detected](#built-in-presets), `_BASE_URL` and `_COMPATIBLE` fall back to preset defaults.
 
@@ -105,7 +106,7 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `openai` | `https://api.openai.com/v1` | `openai` |
 | `anthropic` | `https://api.anthropic.com` | `anthropic` |
 | `google` | `https://generativelanguage.googleapis.com/v1beta` | `gemini` |
-| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` |
+| `opencode-zen` | `https://opencode.ai/zen/v1` | `openai-compatible` (nativeRouting enabled) |
 | `opencode-go` | `https://opencode.ai/zen/go/v1` | `openai-compatible` |
 | `deepseek` | `https://api.deepseek.com` | `openai-compatible` |
 | `groq` | `https://api.groq.com/openai/v1` | `openai-compatible` |
@@ -123,6 +124,35 @@ provider.languageModel('deepseek/deepseek-chat')   // just works
 | `zhipu` | `https://open.bigmodel.cn/api/paas/v4` | `openai-compatible` |
 
 To disable auto-detection: `envProvider({ presetAutoDetect: false })`. See [Advanced Usage](./docs/advanced.md#preset-auto-detect) for details.
+
+## Native Routing
+
+When a config set uses a gateway that exposes multiple AI providers (like `opencode-zen`), `nativeRouting` auto-detects the model family from the model ID prefix and routes it to the appropriate native SDK:
+
+- `claude-*` → `@ai-sdk/anthropic`
+- `gemini-*` → `@ai-sdk/google`
+- `gpt-*` → `@ai-sdk/openai`
+- Other models fall back to the config set's default `compatible` mode
+
+```bash
+# opencode-zen preset has nativeRouting enabled — just set API key
+OPENCODE_ZEN_API_KEY=zen-xxx
+```
+
+```ts
+// Routes to native Anthropic SDK automatically
+provider.languageModel('opencode-zen/claude-sonnet-4-20250514')
+
+// Routes to native Google SDK automatically
+provider.languageModel('opencode-zen/gemini-3-flash')
+
+// Other models use openai-compatible
+provider.languageModel('opencode-zen/minimax-m2.5')
+```
+
+To disable: `OPENCODE_ZEN_NATIVE_ROUTING=false`
+
+> **Known limitation**: `o1-*`, `o3-*`, `chatgpt-*` models are not automatically routed. Use `{PREFIX}_COMPATIBLE=openai` explicitly for these.
 
 ## Documentation
 

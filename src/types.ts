@@ -56,6 +56,14 @@ export interface ConfigSetEntry {
    * `{PREFIX}_HEADERS={"X-Custom-Header":"value"}`
    */
   headers?: Record<string, string>
+  /**
+   * When enabled, auto-detects model family from model ID prefix and routes to the
+   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, `gpt-*`→openai).
+   * Non-matching models fall back to this config set's default `compatible` mode.
+   *
+   * Can also be set via `{PREFIX}_NATIVE_ROUTING=true|false` env var.
+   */
+  nativeRouting?: boolean
 }
 
 /**
@@ -75,6 +83,14 @@ export interface PresetConfig {
    * - `'openai-compatible'` — uses `createOpenAICompatible` with the config set name as the provider name (default)
    */
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
+  /**
+   * When enabled, auto-detects model family from model ID prefix and routes to the
+   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, `gpt-*`→openai).
+   * Non-matching models fall back to the preset's default `compatible` mode.
+   *
+   * Control per-config-set via `{PREFIX}_NATIVE_ROUTING=true|false` env var.
+   */
+  nativeRouting?: boolean
 }
 
 /**

@@ -44,6 +44,25 @@ const defaultFactories: ProviderFactories = {
 }
 
 /**
+ * Detect the native compatible mode for a model based on its ID prefix.
+ *
+ * Used by nativeRouting to auto-route model families to their native provider SDKs.
+ * Only `claude-*`, `gemini-*`, and `gpt-*` prefixes are matched.
+ * Known limitation: `o1-*`, `o3-*`, `chatgpt-*` are NOT matched (use explicit compatible mode).
+ *
+ * @returns The detected compatible mode, or `undefined` if no match.
+ */
+export function detectNativeCompatible(model: string): 'openai' | 'anthropic' | 'gemini' | undefined {
+  if (model.startsWith('claude-'))
+    return 'anthropic'
+  if (model.startsWith('gemini-'))
+    return 'gemini'
+  if (model.startsWith('gpt-'))
+    return 'openai'
+  return undefined
+}
+
+/**
  * Internally resolved configuration with all required fields determined.
  */
 interface ResolvedConfig {
@@ -51,6 +70,7 @@ interface ResolvedConfig {
   apiKey: string
   compatible: string
   headers?: Record<string, string>
+  nativeRouting?: boolean
 }
 
 /**
@@ -75,7 +95,7 @@ export function createEnvProvider(
   /**
    * Resolve baseURL and compatible from a preset name.
    */
-  function resolvePreset(presetName: string): { baseURL: string, compatible: string } {
+  function resolvePreset(presetName: string): { baseURL: string, compatible: string, nativeRouting?: boolean } {
     const preset = builtinPresets[presetName]
     if (!preset) {
       const available = Object.keys(builtinPresets).join(', ')
@@ -86,6 +106,7 @@ export function createEnvProvider(
     return {
       baseURL: preset.baseURL,
       compatible: preset.compatible ?? 'openai-compatible',
+      nativeRouting: preset.nativeRouting,
     }
   }
 
@@ -104,6 +125,7 @@ export function createEnvProvider(
           baseURL: config.baseURL ?? preset.baseURL,
           apiKey: config.apiKey,
           compatible: config.compatible ?? preset.compatible,
+          nativeRouting: config.nativeRouting ?? preset.nativeRouting,
           ...(config.headers && { headers: config.headers }),
         }
       }
@@ -119,6 +141,7 @@ export function createEnvProvider(
         baseURL: config.baseURL,
         apiKey: config.apiKey,
         compatible: config.compatible ?? 'openai-compatible',
+        nativeRouting: config.nativeRouting,
         ...(config.headers && { headers: config.headers }),
       }
     }
@@ -169,6 +192,25 @@ export function createEnvProvider(
       }
     }
 
+    // Parse NATIVE_ROUTING env var (boolean: 'true'/'false', case-insensitive)
+    const nativeRoutingRaw = env('NATIVE_ROUTING')
+    let nativeRoutingFromEnv: boolean | undefined
+    if (nativeRoutingRaw !== undefined) {
+      const lower = nativeRoutingRaw.toLowerCase()
+      if (lower === 'true') {
+        nativeRoutingFromEnv = true
+      }
+      else if (lower === 'false') {
+        nativeRoutingFromEnv = false
+      }
+      else {
+        throw new Error(
+          `[ai-sdk-provider-env] Invalid value for ${prefix}${separator}NATIVE_ROUTING: "${nativeRoutingRaw}". `
+          + `Expected "true" or "false".`,
+        )
+      }
+    }
+
     // Check for preset
     const presetName = env('PRESET')
     if (presetName) {
@@ -177,6 +219,7 @@ export function createEnvProvider(
         baseURL: env('BASE_URL') ?? preset.baseURL,
         apiKey,
         compatible: env('COMPATIBLE') ?? preset.compatible,
+        nativeRouting: nativeRoutingFromEnv ?? preset.nativeRouting,
         ...(headers && { headers }),
       }
     }
@@ -188,6 +231,7 @@ export function createEnvProvider(
         baseURL,
         apiKey,
         compatible: env('COMPATIBLE') ?? 'openai-compatible',
+        nativeRouting: nativeRoutingFromEnv,
         ...(headers && { headers }),
       }
     }
@@ -200,6 +244,7 @@ export function createEnvProvider(
           baseURL: autoPreset.baseURL,
           apiKey,
           compatible: env('COMPATIBLE') ?? autoPreset.compatible ?? 'openai-compatible',
+          nativeRouting: nativeRoutingFromEnv ?? autoPreset.nativeRouting,
           ...(headers && { headers }),
         }
       }
@@ -264,9 +309,31 @@ export function createEnvProvider(
           throw error
         }
       case 'anthropic':
-        return factories.createAnthropic(baseOpts)
+        try {
+          return factories.createAnthropic(baseOpts)
+        }
+        catch (error) {
+          if (isModuleNotFoundError(error, '@ai-sdk/anthropic')) {
+            throw new Error(
+              '[ai-sdk-provider-env] Anthropic provider requires @ai-sdk/anthropic. '
+              + 'Run: npm install @ai-sdk/anthropic',
+            )
+          }
+          throw error
+        }
       case 'gemini':
-        return factories.createGemini(baseOpts)
+        try {
+          return factories.createGemini(baseOpts)
+        }
+        catch (error) {
+          if (isModuleNotFoundError(error, '@ai-sdk/google')) {
+            throw new Error(
+              '[ai-sdk-provider-env] Google provider requires @ai-sdk/google. '
+              + 'Run: npm install @ai-sdk/google',
+            )
+          }
+          throw error
+        }
       case 'openai-compatible':
         try {
           return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
@@ -297,9 +364,15 @@ export function createEnvProvider(
    * Env-var-backed config sets normalize hyphens to underscores, so aliases
    * like `my-api` and `my_api` share one cached provider.
    */
-  function getCacheKey(configSet: string): string {
+  function getCacheKey(configSet: string, config: ResolvedConfig, effectiveCompatible: string): string {
     if (options.configs?.[configSet]) {
+      if (config.nativeRouting) {
+        return `config:${configSet.toUpperCase()}:${effectiveCompatible}`
+      }
       return `config:${configSet.toUpperCase()}`
+    }
+    if (config.nativeRouting) {
+      return `env:${configSet.replace(/-/g, '_').toUpperCase()}:${effectiveCompatible}`
     }
     return `env:${configSet.replace(/-/g, '_').toUpperCase()}`
   }
@@ -311,19 +384,48 @@ export function createEnvProvider(
    * This is safe because `ProviderV3` and `ProviderV4` have identical
    * method signatures — only `specificationVersion` and model type brands differ.
    */
-  function getProvider(configSet: string): ProviderV3 {
-    const key = getCacheKey(configSet)
+  function getProvider(configSet: string, model?: string): ProviderV3 {
+    const config = resolveConfig(configSet)
+
+    const detectedCompatible = (config.nativeRouting && model)
+      ? detectNativeCompatible(model)
+      : undefined
+    const effectiveCompatible = detectedCompatible ?? config.compatible
+    const wasAutoRouted = detectedCompatible != null && detectedCompatible !== config.compatible
+
+    const key = getCacheKey(configSet, config, effectiveCompatible)
     const cached = cache.get(key)
     if (cached)
       return cached
 
-    const config = resolveConfig(configSet)
-    // Safe cast: V3 and V4 providers are structurally identical.
-    // The underlying provider may be ProviderV3 or ProviderV4 depending
-    // on which SDK version the user has installed.
-    const provider = createUnderlying(configSet, config) as unknown as ProviderV3
-    cache.set(key, provider)
-    return provider
+    const configForProvider = wasAutoRouted
+      ? { ...config, compatible: effectiveCompatible }
+      : config
+
+    try {
+      // Safe cast: V3 and V4 providers are structurally identical.
+      // The underlying provider may be ProviderV3 or ProviderV4 depending
+      // on which SDK version the user has installed.
+      const provider = createUnderlying(configSet, configForProvider) as unknown as ProviderV3
+      cache.set(key, provider)
+      return provider
+    }
+    catch (error) {
+      // When nativeRouting auto-routed to a provider whose SDK is not installed,
+      // append a hint so users know they can disable routing to fall back.
+      // Only for module-not-found errors — other errors (config issues, SDK bugs)
+      // should propagate without misleading nativeRouting context.
+      if (wasAutoRouted && error instanceof Error && error.message.includes('[ai-sdk-provider-env]')) {
+        const prefix = configSet.replace(/-/g, '_').toUpperCase()
+        throw new Error(
+          `${error.message}`
+          + ` (nativeRouting auto-detected this model as ${effectiveCompatible}.`
+          + ` Disable with ${prefix}${separator}NATIVE_ROUTING=false to use ${config.compatible} instead.)`,
+          { cause: error },
+        )
+      }
+      throw error
+    }
   }
 
   /**
@@ -348,7 +450,7 @@ export function createEnvProvider(
 
     languageModel(modelId: string) {
       const { configSet, model } = parseModelId(modelId)
-      return getProvider(configSet).languageModel(model)
+      return getProvider(configSet, model).languageModel(model)
     },
 
     embeddingModel(modelId: string) {
