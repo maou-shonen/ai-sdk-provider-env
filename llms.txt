@@ -75,6 +75,7 @@ interface ConfigSetEntry {
   baseURL?: string                  // optional when preset is set
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
   headers?: Record<string, string>
+  providerOptions?: Record<string, unknown> // extra options passed through to the underlying SDK factory
   nativeRouting?: boolean           // enable native SDK routing per model prefix
 }
 ```
@@ -134,10 +135,13 @@ const provider = envProvider({
       apiKey: 'key',
       baseURL: 'https://custom.api.com/v1',
       compatible: 'openai-compatible',
+      providerOptions: { supportsStructuredOutputs: true },
     },
   },
 })
 ```
+
+Use `providerOptions` to pass any SDK-specific option (e.g. `supportsStructuredOutputs`) directly to the underlying provider factory.
 
 ### Provider registry
 ```ts

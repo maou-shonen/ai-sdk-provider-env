@@ -113,6 +113,22 @@ const provider = envProvider({
 const model = provider.languageModel('openai/gpt-4o')
 ```
 
+### Provider-specific options
+
+Use `providerOptions` to pass extra options directly to the underlying SDK factory. This is useful for SDK-specific features that `ai-sdk-provider-env` doesn't expose as first-class fields:
+
+```ts
+const provider = envProvider({
+  configs: {
+    zai: {
+      preset: 'zai',
+      apiKey: process.env.ZAI_API_KEY!,
+      providerOptions: { supportsStructuredOutputs: true },
+    },
+  },
+})
+```
+
 ## Custom Separator
 
 If single underscores conflict with your naming scheme, use double underscores or any other shell-safe string:
