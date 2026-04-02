@@ -57,6 +57,19 @@ export interface ConfigSetEntry {
    */
   headers?: Record<string, string>
   /**
+   * Extra options passed through to the underlying provider SDK factory.
+   *
+   * These are spread directly into the factory call (`createOpenAI`, `createAnthropic`,
+   * `createOpenAICompatible`, etc.), allowing any SDK-specific option without
+   * `ai-sdk-provider-env` needing to know about it.
+   *
+   * @example
+   * ```ts
+   * providerOptions: { supportsStructuredOutputs: true }
+   * ```
+   */
+  providerOptions?: Record<string, unknown>
+  /**
    * When enabled, auto-detects model family from model ID prefix and routes to the
    * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, `gpt-*`→openai).
    * Non-matching models fall back to this config set's default `compatible` mode.

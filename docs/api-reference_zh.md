@@ -36,6 +36,7 @@ interface ConfigSetEntry {
   baseURL?: string
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible' // 繼承 preset 值，或 'openai-compatible'
   headers?: Record<string, string>
+  providerOptions?: Record<string, unknown> // 額外選項，直接傳遞給底層 SDK factory
   nativeRouting?: boolean // 依模型前綴自動路由至原生 SDK（claude-* → anthropic、gemini-* → google、gpt-* → openai）
 }
 ```

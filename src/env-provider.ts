@@ -70,6 +70,7 @@ interface ResolvedConfig {
   apiKey: string
   compatible: string
   headers?: Record<string, string>
+  providerOptions?: Record<string, unknown>
   nativeRouting?: boolean
 }
 
@@ -126,6 +127,7 @@ export function createEnvProvider(
           apiKey: config.apiKey,
           compatible: config.compatible ?? preset.compatible,
           nativeRouting: config.nativeRouting ?? preset.nativeRouting,
+          ...(config.providerOptions && { providerOptions: config.providerOptions }),
           ...(config.headers && { headers: config.headers }),
         }
       }
@@ -142,6 +144,7 @@ export function createEnvProvider(
         apiKey: config.apiKey,
         compatible: config.compatible ?? 'openai-compatible',
         nativeRouting: config.nativeRouting,
+        ...(config.providerOptions && { providerOptions: config.providerOptions }),
         ...(config.headers && { headers: config.headers }),
       }
     }
@@ -266,7 +269,7 @@ export function createEnvProvider(
    * Create the underlying provider based on the compatibility mode.
    */
   function createUnderlying(configSet: string, config: ResolvedConfig): ProviderV3Compatible {
-    const { baseURL, apiKey, compatible, headers } = config
+    const { baseURL, apiKey, compatible, headers, providerOptions } = config
 
     // Merge headers: defaults.headers as base, config-set headers override matching keys
     const mergedHeaders = (defaultHeaders || headers)
@@ -274,6 +277,7 @@ export function createEnvProvider(
       : undefined
 
     const baseOpts = {
+      ...providerOptions,
       baseURL,
       apiKey,
       ...(mergedHeaders && { headers: mergedHeaders }),
@@ -291,7 +295,7 @@ export function createEnvProvider(
           // - User-provided factories don't include openai (ProviderNotAvailableError)
           if (isModuleNotFoundError(error, '@ai-sdk/openai') || error instanceof ProviderNotAvailableError) {
             try {
-              return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
+              return factories.createOpenAICompatible({ ...baseOpts, name: configSet })
             }
             catch (fallbackError) {
               // Only swallow module-not-found errors from the fallback itself
@@ -336,7 +340,7 @@ export function createEnvProvider(
         }
       case 'openai-compatible':
         try {
-          return factories.createOpenAICompatible({ name: configSet, ...baseOpts })
+          return factories.createOpenAICompatible({ ...baseOpts, name: configSet })
         }
         catch (error) {
           if (isModuleNotFoundError(error, '@ai-sdk/openai-compatible')) {

@@ -621,6 +621,26 @@ describe('envProvider', () => {
       })
     })
 
+    it('should pass providerOptions through to underlying provider', () => {
+      const provider = createEnvProvider(factories, {
+        configs: {
+          zai: {
+            baseURL: 'https://api.z.ai/api/paas/v4',
+            apiKey: 'key',
+            providerOptions: { supportsStructuredOutputs: true },
+          },
+        },
+      })
+      provider.languageModel('zai/glm-5')
+
+      expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+        name: 'zai',
+        baseURL: 'https://api.z.ai/api/paas/v4',
+        apiKey: 'key',
+        supportsStructuredOutputs: true,
+      })
+    })
+
     it('should throw when configs has no baseURL and no preset', () => {
       const provider = createEnvProvider(factories, {
         configs: {
@@ -703,6 +723,26 @@ describe('envProvider', () => {
           baseURL: 'https://api.deepseek.com',
           apiKey: 'ds-key',
           headers: { 'X-Custom': 'value' },
+        })
+      })
+
+      it('should pass providerOptions through with preset in configs', () => {
+        const provider = createEnvProvider(factories, {
+          configs: {
+            zai: {
+              preset: 'zai',
+              apiKey: 'zai-key',
+              providerOptions: { supportsStructuredOutputs: true },
+            },
+          },
+        })
+        provider.languageModel('zai/glm-5')
+
+        expect(mockCreateOpenAICompatible).toHaveBeenCalledWith({
+          name: 'zai',
+          baseURL: 'https://api.z.ai/api/paas/v4',
+          apiKey: 'zai-key',
+          supportsStructuredOutputs: true,
         })
       })
 
@@ -1797,6 +1837,35 @@ describe('envProvider', () => {
         apiKey: 'test-key',
         headers: { 'X-App': 'test' },
         fetch: customFetch,
+      })
+    })
+
+    it('should pass providerOptions through openai fallback to openai-compatible', () => {
+      const moduleNotFoundError = Object.assign(
+        new Error("Cannot find module '@ai-sdk/openai'"),
+        { code: 'MODULE_NOT_FOUND' },
+      )
+
+      const { factories: f, mockCreateOpenAICompatible: mockCompat } = createMockFactories()
+      f.createOpenAI = () => { throw moduleNotFoundError }
+
+      const provider = createEnvProvider(f, {
+        configs: {
+          myapi: {
+            baseURL: 'https://api.openai.com/v1',
+            apiKey: 'test-key',
+            compatible: 'openai',
+            providerOptions: { supportsStructuredOutputs: true },
+          },
+        },
+      })
+      provider.languageModel('myapi/gpt-4o')
+
+      expect(mockCompat).toHaveBeenCalledWith({
+        name: 'myapi',
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+        supportsStructuredOutputs: true,
       })
     })
   })

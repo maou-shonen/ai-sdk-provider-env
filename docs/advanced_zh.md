@@ -113,6 +113,22 @@ const provider = envProvider({
 const model = provider.languageModel('openai/gpt-4o')
 ```
 
+### Provider 專屬選項
+
+使用 `providerOptions` 將額外選項直接傳遞給底層 SDK factory。適用於 `ai-sdk-provider-env` 未暴露為一級欄位的 SDK 專屬功能：
+
+```ts
+const provider = envProvider({
+  configs: {
+    zai: {
+      preset: 'zai',
+      apiKey: process.env.ZAI_API_KEY!,
+      providerOptions: { supportsStructuredOutputs: true },
+    },
+  },
+})
+```
+
 ## 自訂分隔符號
 
 若環境變數命名慣例使用雙底線，可調整 `separator`：
