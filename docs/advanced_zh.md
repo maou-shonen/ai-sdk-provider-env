@@ -76,8 +76,7 @@ const provider = envProvider({
 
 ### 已知限制
 
-- 僅匹配 `claude-*`、`gemini-*`、`gpt-*` 前綴。
-- `o1-*`、`o3-*`、`chatgpt-*` 不會自動路由。請明確設定 `{PREFIX}_COMPATIBLE=openai`。
+- 會匹配 `claude-*`、`gemini-*`，以及 OpenAI 模型前綴（`gpt-*`、`o1`、`o1-*`、`o3`、`o3-*`、`o4`、`o4-*`、`chatgpt-*`）。
 - 本版本不支援 `nativeRouting` 物件形式（逐路由覆蓋）。
 
 ## Provider Fallback

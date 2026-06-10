@@ -76,8 +76,7 @@ const provider = envProvider({
 
 ### Known Limitations
 
-- Only `claude-*`, `gemini-*`, and `gpt-*` prefixes are matched.
-- `o1-*`, `o3-*`, `chatgpt-*` are NOT auto-routed. Use `{PREFIX}_COMPATIBLE=openai` for these.
+- `claude-*`, `gemini-*`, and OpenAI model prefixes (`gpt-*`, `o1`, `o1-*`, `o3`, `o3-*`, `o4`, `o4-*`, `chatgpt-*`) are matched.
 - `nativeRouting` as an object (per-route overrides) is not supported in this version.
 
 ## Provider Fallback

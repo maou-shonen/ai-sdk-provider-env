@@ -131,7 +131,7 @@ When a config set uses a gateway that exposes multiple AI providers (like `openc
 
 - `claude-*` → `@ai-sdk/anthropic`
 - `gemini-*` → `@ai-sdk/google`
-- `gpt-*` → `@ai-sdk/openai`
+- OpenAI model prefixes (`gpt-*`, `o1`, `o1-*`, `o3`, `o3-*`, `o4`, `o4-*`, `chatgpt-*`) → `@ai-sdk/openai`
 - Other models fall back to the config set's default `compatible` mode
 
 ```bash
@@ -151,8 +151,6 @@ provider.languageModel('opencode-zen/minimax-m2.5')
 ```
 
 To disable: `OPENCODE_ZEN_NATIVE_ROUTING=false`
-
-> **Known limitation**: `o1-*`, `o3-*`, `chatgpt-*` models are not automatically routed. Use `{PREFIX}_COMPATIBLE=openai` explicitly for these.
 
 ## Documentation
 

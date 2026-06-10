@@ -131,7 +131,7 @@ provider.languageModel('deepseek/deepseek-chat')   // 直接可用
 
 - `claude-*` → `@ai-sdk/anthropic`
 - `gemini-*` → `@ai-sdk/google`
-- `gpt-*` → `@ai-sdk/openai`
+- OpenAI 模型前綴（`gpt-*`、`o1`、`o1-*`、`o3`、`o3-*`、`o4`、`o4-*`、`chatgpt-*`）→ `@ai-sdk/openai`
 - 其他模型退回到 config set 的預設相容模式
 
 ```bash
@@ -151,8 +151,6 @@ provider.languageModel('opencode-zen/minimax-m2.5')
 ```
 
 停用：`OPENCODE_ZEN_NATIVE_ROUTING=false`
-
-> **已知限制**：`o1-*`、`o3-*`、`chatgpt-*` 模型不會自動路由。請明確設定 `{PREFIX}_COMPATIBLE=openai`。
 
 ## 文件
 

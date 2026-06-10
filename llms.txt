@@ -76,7 +76,7 @@ interface ConfigSetEntry {
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
   headers?: Record<string, string>
   providerOptions?: Record<string, unknown> // extra options passed through to the underlying SDK factory
-  nativeRouting?: boolean           // enable native SDK routing per model prefix
+  nativeRouting?: boolean           // route claude-*, gemini-*, and OpenAI prefixes to native SDKs
 }
 ```
 

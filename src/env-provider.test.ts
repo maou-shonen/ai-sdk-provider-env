@@ -242,16 +242,23 @@ describe('detectNativeCompatible', () => {
     expect(detectNativeCompatible('gpt-5.4-pro')).toBe('openai')
   })
 
+  it('should return openai for o-series reasoning models', () => {
+    expect(detectNativeCompatible('o1-mini')).toBe('openai')
+    expect(detectNativeCompatible('o3')).toBe('openai')
+    expect(detectNativeCompatible('o3-pro')).toBe('openai')
+    expect(detectNativeCompatible('o4-mini')).toBe('openai')
+  })
+
+  it('should return openai for chatgpt-* aliases', () => {
+    expect(detectNativeCompatible('chatgpt-4o-latest')).toBe('openai')
+  })
+
   it('should return undefined for unknown llama model', () => {
     expect(detectNativeCompatible('llama-3.3-70b')).toBeUndefined()
   })
 
   it('should return undefined for unknown minimax model', () => {
     expect(detectNativeCompatible('minimax-m2.5')).toBeUndefined()
-  })
-
-  it('should return undefined for o1-* (known limitation)', () => {
-    expect(detectNativeCompatible('o1-mini')).toBeUndefined()
   })
 
   it('should return undefined for org-prefixed models', () => {
@@ -1334,6 +1341,15 @@ describe('envProvider', () => {
       })
       provider.languageModel('myconfig/gpt-4o')
       expect(mockCreateOpenAI).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://gw.example.com/v1' }))
+    })
+
+    it('should route o-series models to openai factory when nativeRouting=true', () => {
+      const provider = createEnvProvider(factories, {
+        configs: { myconfig: { baseURL: 'https://gw.example.com/v1', apiKey: 'key', nativeRouting: true } },
+      })
+      provider.languageModel('myconfig/o4-mini')
+      expect(mockCreateOpenAI).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://gw.example.com/v1' }))
+      expect(mockCreateOpenAICompatible).not.toHaveBeenCalled()
     })
 
     it('should fall back to default compatible for unknown model prefixes when nativeRouting=true', () => {

@@ -71,7 +71,7 @@ export interface ConfigSetEntry {
   providerOptions?: Record<string, unknown>
   /**
    * When enabled, auto-detects model family from model ID prefix and routes to the
-   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, `gpt-*`→openai).
+   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, OpenAI model prefixes→openai).
    * Non-matching models fall back to this config set's default `compatible` mode.
    *
    * Can also be set via `{PREFIX}_NATIVE_ROUTING=true|false` env var.
@@ -98,7 +98,7 @@ export interface PresetConfig {
   compatible?: 'openai' | 'anthropic' | 'gemini' | 'openai-compatible'
   /**
    * When enabled, auto-detects model family from model ID prefix and routes to the
-   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, `gpt-*`→openai).
+   * native provider SDK (`claude-*`→anthropic, `gemini-*`→gemini, OpenAI model prefixes→openai).
    * Non-matching models fall back to the preset's default `compatible` mode.
    *
    * Control per-config-set via `{PREFIX}_NATIVE_ROUTING=true|false` env var.
